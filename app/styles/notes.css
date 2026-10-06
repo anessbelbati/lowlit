@@ -1,0 +1,6 @@
+/* The notes (notes.js): the cards of cards.css at the top of the screen, in the corner Settings names, over whatever is
+   there, the newest on top. Their window is the cards and a margin of 8px round them for the shadow (main.cjs: NOTES_W). */
+
+html, body { height: auto; background: transparent !important; }
+body.notes { padding: 8px; overflow: hidden; }
+.stack { width: 360px; display: flex; flex-direction: column; gap: 8px; }

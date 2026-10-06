@@ -1,0 +1,78 @@
+/* The floating card (float.js): a slab of the Noir look over whatever is on screen, lit along its top and left edges
+   by the same lamp past the top left corner, the colours that mean something glowing a little. Its window is the card
+   and a margin of 8px round it for the shadow (main.cjs: FLOAT_W). Nothing moves on it but the figures that tick. */
+
+html, body { height: auto; background: transparent !important; }
+body.float { padding: 8px; overflow: hidden; }
+
+.card { position: relative; width: 320px; display: flex; flex-direction: column; gap: 11px; padding: 9px 10px 12px 13px; overflow: hidden;
+  border-radius: 16px; border: 1px solid rgba(255, 255, 255, .09); background: rgba(7, 7, 8, .95);
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, .9), 0 0 0 1px rgba(0, 0, 0, .75); }
+/* the lamp's light falls in from past the top left corner */
+.card::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(140% 95% at 0% 0%, rgba(255, 255, 255, .07), transparent 60%); }
+/* and catches the rim, as on the panel the chats sit in */
+.card::after { content: ''; position: absolute; inset: 0; border-radius: 15px; pointer-events: none; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .3);
+  mask-image: linear-gradient(90deg, #000, rgba(0, 0, 0, .3) 32%, transparent 72%), linear-gradient(180deg, #000, rgba(0, 0, 0, .25) 60px, transparent 45%);
+  mask-composite: intersect; }
+.card > * { position: relative; z-index: 1; min-width: 0; }
+.card.s-needs { border-color: oklch(0.86 0.14 85 / .38); box-shadow: 0 12px 30px -10px rgba(0, 0, 0, .9), 0 0 22px oklch(0.86 0.14 85 / .16); }
+.card.s-error { border-color: oklch(0.7 0.18 22 / .38); }
+.card.s-done { border-color: oklch(0.82 0.15 160 / .32); }
+html[data-look="grey"] .card { background: rgba(22, 22, 25, .96); }
+html[data-look="grey"] .card::before, html[data-look="grey"] .card::after { display: none; }
+
+/* its top line moves the card: hold it and drag */
+.fc-head { display: flex; align-items: center; gap: 8px; height: 26px; margin-right: -3px; -webkit-app-region: drag; }
+.fc-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; letter-spacing: -.008em; }
+.fc-folder { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-3); font-size: 12px; }
+.fc-tools { flex: none; margin-left: auto; display: flex; gap: 1px; -webkit-app-region: no-drag; }
+.fc-btn { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; color: var(--text-4); }
+.fc-btn:hover { background: rgba(255, 255, 255, .08); color: var(--text); }
+.fc-btn.on { color: var(--text); }
+.card:not(.small) .fc-size .i { transform: rotate(180deg); }
+
+.fc-now { display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; color: var(--text-2); }
+.fc-words { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-now.s-working .fc-words, .fc-now.s-compacting .fc-words { color: var(--text); }
+.fc-now.s-needs .fc-words { color: var(--yellow); font-weight: 500; text-shadow: 0 0 10px oklch(0.86 0.14 85 / .35); }
+.fc-now.s-error .fc-words { color: var(--red); font-weight: 500; }
+.fc-now.s-done .fc-words { color: var(--green); }
+.fc-timer { flex: none; margin-left: auto; color: var(--text-3); font-family: var(--mono); font-size: 11px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.fc-timer b { font-weight: 500; color: var(--text-2); }
+
+.fc-label { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; color: var(--text-3); font-size: 11.5px; }
+.fc-count { margin-left: auto; color: var(--text-2); font-family: var(--mono); font-size: 11px; letter-spacing: 0; }
+
+.fc-plan > .pl-marks { width: 100%; margin-bottom: 7px; }
+.fc-plan .pl-step { font-size: 12.5px; padding: 2px 0; }
+.fc-plan-line { display: flex; align-items: center; gap: 9px; font-size: 12.5px; }
+.fc-plan-line .pl-marks { width: min(96px, calc(var(--n) * 12px)); }
+.fc-plan-line .pl-n { font-family: var(--mono); font-size: 11px; }
+.fc-step { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-weight: 500; }
+.fc-step.done { color: var(--green); }
+
+.fc-agent { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; align-items: center; column-gap: 8px; min-height: 22px; font-size: 12.5px; }
+.fc-agent-what { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.fc-agent .fc-timer { margin-left: 0; }
+.fc-agents .pl-more { margin-left: 22px; }
+
+.fc-mem .track { height: 4px; }
+.fc-mem.warm .fc-count { color: var(--yellow); }
+.fc-mem.hot .fc-count { color: var(--red); }
+.fc-sub { margin-top: 5px; color: var(--text-3); font-size: 11.5px; }
+.fc-numbers { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .06); }
+.fc-num { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fc-num b, .fc-num span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-num b { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0; color: var(--text); }
+.fc-num span { font-size: 11px; color: var(--text-3); }
+.card.small { gap: 8px; }
+.card.small .fc-label { margin-bottom: 4px; }
+
+.fc-others { margin: 1px -10px -12px -13px; padding: 8px 12px 10px 13px; display: flex; flex-direction: column; gap: 3px; border-top: 1px solid rgba(255, 255, 255, .07);
+  background: rgba(255, 255, 255, .02); font-size: 12px; color: var(--text-2); }
+.fc-needs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; color: var(--yellow); }
+.fc-needs-k { font-weight: 500; }
+.fc-comma { margin-left: -4px; color: var(--text-3); }
+.fc-link { color: var(--text); text-decoration: underline; text-decoration-color: rgba(255, 255, 255, .25); text-underline-offset: 2px; }
+.fc-link:hover { text-decoration-color: var(--text); }
+.fc-working { color: var(--text-3); }

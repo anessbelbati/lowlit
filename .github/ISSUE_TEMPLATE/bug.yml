@@ -1,0 +1,36 @@
+name: Bug
+description: Something in Lowlit does not work as it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: Lowlit commit
+      description: "The output of: git rev-parse --short HEAD"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+    validations:
+      required: true
+  - type: input
+    id: claude
+    attributes:
+      label: Claude Code version
+      description: "The output of: claude --version"
+  - type: textarea
+    id: log
+    attributes:
+      label: Lowlit's log around that moment
+      description: "%APPDATA%\\lowlit\\desk.log is written to hold no conversation text, but read what you paste. Blur your chats' names in any screenshot."
+      render: text

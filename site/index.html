@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lowlit: a quiet desk for your Claude Code chats</title>
+<meta name="description" content="Run many Claude Code sessions in one window on Windows. Each chat is a real terminal running the real claude, with its cost, your usage limits, a browser it can drive and a viewer beside it. Free, open source, local.">
+<link rel="canonical" href="https://getlowlit.pages.dev/">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="img/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="img/icon-32.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lowlit">
+<meta property="og:title" content="Lowlit: a quiet desk for your Claude Code chats">
+<meta property="og:description" content="Every Claude Code chat in one window, each one a real terminal running the real claude, with the numbers beside them. Free, open source, runs on your computer only.">
+<meta property="og:url" content="https://getlowlit.pages.dev/">
+<meta property="og:image" content="https://getlowlit.pages.dev/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Lowlit: four Claude Code chats side by side in one dark window, with the list of chats and the usage limits on the left">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<script src="site.js" defer></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Lowlit",
+  "description": "A desktop app that shows every Claude Code chat in one window: each chat a real terminal running the claude program, with its cost, the account's usage limits, a browser the chat can drive and a viewer beside it.",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Windows 10, Windows 11",
+  "softwareVersion": "0.1.0",
+  "license": "https://opensource.org/license/mit",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "url": "https://getlowlit.pages.dev/",
+  "codeRepository": "https://github.com/anessbelbati/lowlit",
+  "image": "https://getlowlit.pages.dev/og.png",
+  "author": { "@type": "Person", "name": "Aness Belbati" }
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the page</a>
+<div class="light" aria-hidden="true"></div>
+
+<header class="nav">
+  <a class="brand" href="/" aria-label="Lowlit, home">
+    <img src="img/symbol.png" srcset="img/symbol@2x.png 2x, img/symbol@3x.png 3x" width="25" height="18" alt="">
+    <span>lowlit</span>
+  </a>
+  <nav aria-label="Page">
+    <a href="#what">What it does</a>
+    <a href="#trust">What it never does</a>
+    <a href="#install">Install</a>
+    <a class="pill" href="https://github.com/anessbelbati/lowlit">GitHub</a>
+  </nav>
+</header>
+
+<main id="main">
+  <section class="hero">
+    <p class="eyebrow"><span>For Claude Code on Windows</span><i></i><span>free and open source</span></p>
+    <h1>A quiet desk for your Claude&nbsp;Code chats.</h1>
+    <p class="lede">Every chat in one window. Each one a real terminal running the real <code>claude</code>. The numbers beside them.</p>
+    <div class="cta">
+      <a class="btn solid" href="#install">Get Lowlit</a>
+      <a class="btn" href="https://github.com/anessbelbati/lowlit">View on GitHub</a>
+    </div>
+    <p class="fine"><span>MIT licence</span><i></i><span>runs on your computer only</span><i></i><span>never sees your login</span></p>
+    <figure class="shot lead">
+      <img src="img/chats.webp" srcset="img/chats-800.webp 800w, img/chats.webp 1600w" sizes="(max-width: 1200px) 94vw, 1120px" width="1600" height="1000" fetchpriority="high"
+        alt="Lowlit with four Claude Code chats side by side: one waits for a permission, one compares prices with three subagents, one compacts its memory, one is finished. On the left, every chat sorted by who needs you, and the account's usage limits.">
+    </figure>
+  </section>
+
+  <section class="three" aria-labelledby="three-h">
+    <h2 id="three-h">Five chats in, the chats stop being the hard part.</h2>
+    <p class="sub">The hard part is three questions. Lowlit answers them without you asking.</p>
+    <ol>
+      <li>
+        <span class="n">01</span>
+        <h3>Which one waits for you?</h3>
+        <p>Your chats sort themselves into Needs you, Finished, Working and Idle, with how long each has waited. One key goes to the next one that waits.</p>
+      </li>
+      <li>
+        <span class="n">02</span>
+        <h3>How much of your plan is left?</h3>
+        <p>Your 5-hour and weekly limits, where they are heading at your pace, and when they reset. No more finding out mid-task.</p>
+      </li>
+      <li>
+        <span class="n">03</span>
+        <h3>What is each one running?</h3>
+        <p>What a chat cost at API list prices, its tokens, how full its context is, and the RAM and processor of everything it started.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section id="what" class="features" aria-label="What it does">
+    <article class="feature">
+      <div class="words">
+        <p class="kicker">The Browser</p>
+        <h2>A browser each chat can drive.</h2>
+        <p>Ask a chat to open the page it just built. It reads it, clicks, types, looks at it as a phone, a tablet and a laptop in one go, and records a GIF of what it did.</p>
+        <p>You watch beside the chat and take the page over when you want. Sites on your ask-first list, like your mail and your payments, wait for your yes.</p>
+      </div>
+      <figure class="shot">
+        <img src="img/browser.webp" srcset="img/browser-800.webp 800w, img/browser.webp 1600w" sizes="(max-width: 900px) 94vw, 660px" width="1600" height="1000" loading="lazy"
+          alt="A chat on the left and, beside it, the web page it opened in Lowlit's browser">
+      </figure>
+    </article>
+
+    <article class="feature flip">
+      <div class="words">
+        <p class="kicker">The Viewer</p>
+        <h2>See what your chats make.</h2>
+        <p>Pictures, videos and sounds open beside the chat that made them. Two takes side by side. A wipe to compare them. A video the chat can play, pause and step through.</p>
+      </div>
+      <figure class="shot">
+        <img src="img/viewer.webp" srcset="img/viewer-800.webp 800w, img/viewer.webp 1600w" sizes="(max-width: 900px) 94vw, 660px" width="1600" height="1000" loading="lazy"
+          alt="A chat on the left and, beside it, two pictures it made, shown side by side in the Viewer">
+      </figure>
+    </article>
+
+    <article class="feature">
+      <div class="words">
+        <p class="kicker">The Dashboard</p>
+        <h2>Everything running, on one page.</h2>
+        <p>What each session holds on your machine: its dev servers, its MCP servers, their ports, their RAM. The latest tool calls of every chat. Today, 7 days, 30 days.</p>
+      </div>
+      <figure class="shot">
+        <img src="img/dashboard.webp" srcset="img/dashboard-800.webp 800w, img/dashboard.webp 1600w" sizes="(max-width: 900px) 94vw, 660px" width="1600" height="1000" loading="lazy"
+          alt="The Dashboard: one bar per chat, what each session runs besides the agent with its RAM and processor, and the latest tool calls">
+      </figure>
+    </article>
+
+    <article class="feature flip">
+      <div class="words">
+        <p class="kicker">At a glance</p>
+        <h2>All of them, on one screen.</h2>
+        <p>Every chat as a card: who waits, who works, and each one's last words. Click one and you are in it.</p>
+      </div>
+      <figure class="shot">
+        <img src="img/glance.webp" srcset="img/glance-800.webp 800w, img/glance.webp 1600w" sizes="(max-width: 900px) 94vw, 660px" width="1600" height="1000" loading="lazy"
+          alt="Every chat at a glance: nine cards, each with its state, how long it has waited, its folder and its last words">
+      </figure>
+    </article>
+  </section>
+
+  <section id="trust" class="trust" aria-labelledby="trust-h">
+    <div class="trust-head">
+      <h2 id="trust-h">It is still the claude you know.</h2>
+      <p>Lowlit does not wrap or replace Claude Code. Each chat is a terminal running the program you already have, so your settings, hooks, MCP servers and slash commands work as they always do. Lowlit reads the files Claude Code writes on your disk, and shows what they say.</p>
+    </div>
+    <ul class="never">
+      <li><b>Never sees your login.</b> It does not open the file that holds it, and stores no key.</li>
+      <li><b>Never talks to Anthropic.</b> It cannot log in, log out or switch accounts.</li>
+      <li><b>Never acts on its own.</b> It types into a chat only when you click a button that says so.</li>
+      <li><b>Nothing leaves your computer</b> unless you switch that on. The code is there to read.</li>
+    </ul>
+    <div class="keeper">
+      <h3>Chats that outlive the window.</h3>
+      <p>A small keeper process holds the terminals. Restart Lowlit, or let it crash, and your chats run on and are there when it opens again.</p>
+    </div>
+  </section>
+
+  <section id="install" class="install" aria-labelledby="install-h">
+    <h2 id="install-h">Install</h2>
+    <p class="sub">You need Windows 10 or 11, Node.js 20 or newer, Git, and Claude Code installed.</p>
+    <div class="term">
+      <div class="term-bar">
+        <span>Terminal</span>
+        <button class="copy" type="button" data-copy="git clone https://github.com/anessbelbati/lowlit&#10;cd lowlit&#10;npm install&#10;npm start">Copy</button>
+      </div>
+<pre><code><span class="p">&gt;</span> git clone https://github.com/anessbelbati/lowlit
+<span class="p">&gt;</span> cd lowlit
+<span class="p">&gt;</span> npm install
+<span class="p">&gt;</span> npm start</code></pre>
+    </div>
+    <p class="after">Nothing is compiled on your machine. The <a href="https://github.com/anessbelbati/lowlit#readme">README</a> has the rest: the usage limits, the browser, the keys.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <a class="brand" href="/" aria-label="Lowlit, home">
+    <img src="img/symbol.png" srcset="img/symbol@2x.png 2x, img/symbol@3x.png 3x" width="25" height="18" alt="">
+    <span>lowlit</span>
+  </a>
+  <nav aria-label="Lowlit elsewhere">
+    <a href="https://github.com/anessbelbati/lowlit">GitHub</a>
+    <a href="https://github.com/anessbelbati/lowlit/issues">Issues</a>
+    <a href="https://github.com/anessbelbati/lowlit/blob/main/LICENSE">MIT licence</a>
+  </nav>
+  <p>Lowlit is not made by, or affiliated with, Anthropic. Claude and Claude Code are trademarks of Anthropic.</p>
+</footer>
+
+</body>
+</html>

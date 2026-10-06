@@ -1,0 +1,57 @@
+/* The cards (ui.js noteCard): everything the app says, one flat black look, the same over other programs (notes.html)
+   and in the window (#cards). No light and no glow: colour is only in the mark and the few words that say what
+   happened. Yellow wants you, red stopped on an error, green finished. */
+
+.nc { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr) 24px; column-gap: 10px; align-items: start;
+  padding: 11px 8px 11px 13px; border-radius: 12px;
+  background: #0b0b0d; border: 1px solid rgba(255, 255, 255, .1);
+  box-shadow: 0 14px 36px -12px rgba(0, 0, 0, .9), 0 0 0 1px rgba(0, 0, 0, .7);
+  animation: nc-in .16s cubic-bezier(.2, .8, .2, 1) both; }
+.nc > * { min-width: 0; }
+.nc.plain { align-items: center; }
+html[data-look="grey"] .nc { background: #19191c; }
+@keyframes nc-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+.nc-mark { padding-top: 2px; display: grid; place-items: center; color: var(--text-3); }
+.nc.plain .nc-mark { padding-top: 0; }
+.nc.k-needs .nc-mark, .nc.k-show .nc-mark, .nc.k-page .nc-mark, .nc.k-limit .nc-mark, .nc.k-disk .nc-mark { color: var(--yellow); }
+.nc.k-error .nc-mark { color: var(--red); }
+.nc.k-done .nc-mark, .nc.k-reset .nc-mark { color: var(--green); }
+.nc.k-nest .nc-mark { color: var(--text); }
+/* the marks glow a little elsewhere in the Noir look (noir.css): not on a card */
+.nc .glyph { filter: none !important; }
+
+.nc-main { display: flex; flex-direction: column; gap: 3px; }
+.nc-main.goes { cursor: pointer; }
+/* the name first, whole where it fits; what happened beside it, or under it when the two do not fit on one line */
+.nc-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 1px 7px; min-width: 0; }
+.nc-title { flex: 0 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; letter-spacing: -.008em; color: var(--text); }
+.nc-what { flex: 0 1 auto; min-width: 0; font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+.nc.k-needs .nc-what, .nc.k-show .nc-what, .nc.k-page .nc-what { color: var(--yellow); }
+.nc.k-error .nc-what { color: var(--red); }
+.nc.k-done .nc-what { color: var(--green); }
+.nc-time { flex: none; margin-left: auto; color: var(--text-4); font-family: var(--mono); font-size: 11px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.nc-place { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-3); font-size: 11.5px; }
+.nc-body { margin: 0; color: var(--text-2); font-size: 12.5px; line-height: 1.45; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.nc.plain .nc-body { color: var(--text); }
+.nc-acts { display: flex; gap: 6px; margin-top: 8px; }
+.nc-open { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 12px; border-radius: 999px;
+  background: var(--text); color: #000; font-size: 12px; font-weight: 600; }
+.nc-open:hover { background: #fff; }
+.nc-x { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; color: var(--text-4); }
+.nc.plain .nc-x { margin: -3px 0; }
+.nc-x:hover { background: rgba(255, 255, 255, .08); color: var(--text); }
+.nc-all { align-self: flex-start; height: 24px; padding: 0 11px; border-radius: 999px; color: var(--text-3); font-size: 11.5px;
+  background: #0b0b0d; border: 1px solid rgba(255, 255, 255, .1); }
+.nc-all:hover { color: var(--text); }
+.right .nc-all { align-self: flex-end; }
+
+/* the window's own: at the top of the chats, in the corner Settings names (top right unless changed), 20px inside the
+   panel the views sit in (shell.css .stage, which stands 8px off the window's right edge, and off its left without the list) */
+.cards { position: fixed; z-index: 55; top: calc(var(--titlebar) + 12px); left: calc(var(--sidebar) + 20px); width: min(360px, calc(100vw - 32px));
+  display: flex; flex-direction: column; gap: 8px; }
+body.no-side .cards { left: 28px; }
+.cards.right { left: auto; right: calc(var(--web-w, 0px) + var(--view-w, 0px) + 28px); }
+/* what a screen reader reads out of them: never drawn */
+.said { position: fixed; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

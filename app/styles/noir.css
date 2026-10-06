@@ -1,0 +1,178 @@
+/* The Noir look. Black, and the light of a lamp just past the top left corner falling over the title bar and the list
+   of chats in rays, drawn in fine dots (noir.js). The panel the chats sit in is solid and lies over the light like a
+   slab of obsidian, a thin rim of light along its top and left edges where the lamp catches it; the sidebar and the
+   title bar float on the light itself. Reading is in Inter, in sentence case; figures that change while they are looked at are in Geist
+   Mono, whose digits all have one width. White is what is switched on, picked, and where the keyboard is. Yellow,
+   green and red keep their meanings and glow a little, as lights do in the dark.
+   It is the look unless Settings picks the grey one (html[data-look="grey"]). Nothing here blurs what lies behind it:
+   a blur over a moving picture would be worked out again for every frame. */
+
+@font-face {
+  font-family: 'Geist Mono'; font-style: normal; font-display: swap; font-weight: 100 900;
+  src: url(../fonts/geist-mono.woff) format('woff');
+}
+
+/* the canvas the light is drawn on fills the ground; the grey look has none */
+.noir { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+/* until its first frame, and while its graphics context is gone: Chromium would paint it white */
+.noir.off { display: none; }
+html[data-look="grey"] .noir { display: none; }
+
+html:not([data-look="grey"]) {
+  --mono: 'Geist Mono', 'Cascadia Mono', ui-monospace, Consolas, monospace;
+  --text: #f1f1f3;
+  --text-2: #a5a5ac;
+  --text-3: #6e6e76;
+  --text-4: #4a4a51;
+  --bg: #000;
+  /* the terminal is painted in this same colour (terminals.js) */
+  --panel: #060607;
+  --float: rgba(11, 11, 13, .97);
+  --solid-float: #0d0d0f;
+  --hover: rgba(255, 255, 255, .045);
+  --active: rgba(255, 255, 255, .075);
+  --fill: rgba(255, 255, 255, .04);
+  --fill-2: rgba(255, 255, 255, .085);
+  --line: rgba(255, 255, 255, .07);
+  --line-2: rgba(255, 255, 255, .11);
+  --track: rgba(255, 255, 255, .065);
+  --bar: rgba(255, 255, 255, .32);
+  --well: rgba(0, 0, 0, .55);
+  --accent: #f1f1f3;
+  --focus: rgba(255, 255, 255, .6);
+  --green: oklch(0.82 0.15 160);
+  --yellow: oklch(0.86 0.14 85);
+  --red: oklch(0.7 0.18 22);
+  --grey: #8d8d95;
+  --none: #56565d;
+  --r-l: 12px;
+  --shadow-float: 0 28px 70px -20px rgba(0, 0, 0, .95), 0 2px 10px rgba(0, 0, 0, .6);
+  --blur: none;
+}
+
+html:not([data-look="grey"]) {
+  & ::selection { background: rgba(255, 255, 255, .2); }
+  & ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .09); border: 3px solid transparent; background-clip: padding-box; border-radius: 999px; }
+  & ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .26); border: 3px solid transparent; background-clip: padding-box; }
+  & :focus-visible { outline-offset: 2px; }
+
+  /* ---- the ground: black under the light; see-through, a deep tint over the blur Windows draws, the dots on top.
+     ---- The tint is deep enough that a white window behind still leaves the sidebar's words readable. ---- */
+  &:not(.glass) .backdrop { background: #000; }
+  &.glass .backdrop { background: rgba(0, 0, 0, .84); }
+  &.glass .backdrop::after { background: #000; }
+
+  /* ---- marks: the three colours that mean something glow a little ---- */
+  & .g-needs { filter: drop-shadow(0 0 3px oklch(0.86 0.14 85 / .55)); }
+  & .g-done { filter: drop-shadow(0 0 4px oklch(0.82 0.15 160 / .6)); }
+  & .g-error { filter: drop-shadow(0 0 3px oklch(0.7 0.18 22 / .55)); }
+  & .srv-dot.s-running, & .srv-dot.s-elsewhere, & .srv-side-n:not(:empty)::before { box-shadow: 0 0 8px oklch(0.82 0.15 160 / .55); }
+  & .srv-dot.s-failed, & .srv-dot.s-blocked, & .srv-side-bad { box-shadow: 0 0 8px oklch(0.7 0.18 22 / .5); }
+  & .srv-form-inner { border-radius: 14px; background: rgba(255, 255, 255, .025); }
+
+  /* ---- figures that tick: one width per digit ---- */
+  & .timer, & .side-n, & .g-n, & .feed-row .at, & .feed-row .len, & .row-when,
+  & .tl-row .at, & .tl-row .len, & .slim, & .acct-reset-row, & .lim-cell .r, & .lim-cell .go, & .scale, & .axis span, & .ribbon-axis span,
+  & .acct-other-state, & .side-limit .r, & .space-n, & .pick .when, & .find-meta, & .record-meta time, & .tb-undo .left {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0;
+  }
+  /* a chat's row in the list: its figures a size up, to be read at a glance */
+  & .nav-item.chat .when, & .nav-item.chat .m-cost { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0; }
+  & .nav-item.chat .meta .m-tok, & .nav-item.chat .meta .m-ram, & .nav-item.chat .meta .m-mem { font-family: var(--mono); font-size: 11px; letter-spacing: 0; }
+  & .side-meter .mt-ram, & .side-meter .mt-cpu { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0; }
+  & .side-meter { border-radius: 10px; }
+
+  /* ---- what stands on the light: a soft black halo round every letter, so words cut through the dots. No panel
+     ---- lies behind these words, so each grey here is one step brighter than the same grey in a panel ---- */
+  & .titlebar, & .sidebar { text-shadow: 0 0 2px #000, 0 0 4px #000, 0 0 10px rgba(0, 0, 0, .95);
+    --text-2: #cfcfd4; --text-3: #a5a5ac; --text-4: #6e6e76; }
+  & #new-chat, & .seg button.on, & .switch, & .btn.primary { text-shadow: none; }
+
+  /* ---- the title bar, on the light ---- */
+  & .titlebar { background: transparent; }
+  & .brand span { font-weight: 600; letter-spacing: -.04em; }
+  & .tb-crumb::before { background: rgba(255, 255, 255, .12); }
+  & .cb-chat { font-weight: 600; letter-spacing: -.008em; }
+  & .omni { border-radius: 999px; background: rgba(255, 255, 255, .035); border-color: rgba(255, 255, 255, .09); padding: 0 4px 0 12px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04); }
+  & .omni:hover { background: rgba(255, 255, 255, .065); color: var(--text-2); }
+  & .omni kbd { border-radius: 999px; padding: 0 7px; }
+  & .tb-need { height: 24px; gap: 7px; padding: 0 10px 0 8px; border-radius: 999px; color: var(--yellow);
+    border: 1px solid oklch(0.86 0.14 85 / .28); background: oklch(0.86 0.14 85 / .07); box-shadow: 0 0 16px oklch(0.86 0.14 85 / .12); }
+  & .tb-need:hover { background: oklch(0.86 0.14 85 / .12); }
+  & .tb-version, & .tb-undo { border-radius: 999px; }
+  & #new-chat { height: 26px; padding: 0 12px 0 10px; border-radius: 999px; border-color: var(--text); background: var(--text); color: #000; font-weight: 600;
+    box-shadow: 0 0 18px rgba(255, 255, 255, .14); }
+  & #new-chat:hover { background: #fff; border-color: #fff; }
+  & #new-chat .i { opacity: 1; }
+
+  /* ---- the sidebar, on the light ---- */
+  & .space-tab { border-radius: 999px; padding: 0 10px; }
+  & .space-tab.on { background: rgba(255, 255, 255, .09); color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07); }
+  & .space-tab.ws-tab::after { left: 11px; right: 11px; bottom: 1px; }
+  & .nav-item { border-radius: 8px; }
+  & .nav-item.on { background: rgba(255, 255, 255, .075); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .045), inset 0 1px 0 rgba(255, 255, 255, .05); }
+  & .nav-item.chat.shown::before { background: rgba(255, 255, 255, .3); }
+  & .nav-item.chat.shown.on::before { background: #fff; box-shadow: 0 0 10px rgba(255, 255, 255, .7); }
+  & .acct { border-radius: 12px; }
+  & .side-limit { border-radius: 999px; background: oklch(0.7 0.18 22 / .07); border: 1px solid oklch(0.7 0.18 22 / .22); }
+
+  /* ---- the panel the views sit in: obsidian, with the rim of light along its top edge ---- */
+  & .stage { border-color: rgba(255, 255, 255, .075); border-radius: 14px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .85), 0 40px 100px -40px #000, inset 0 1px 0 rgba(255, 255, 255, .03); }
+  /* the rim: lit along the top and the left as by the lamp, round the corner, fading away from it */
+  & .stage::after { content: ''; position: absolute; z-index: 5; inset: 0; border-radius: 13px; pointer-events: none;
+    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .32);
+    mask-image: linear-gradient(90deg, #000, rgba(0, 0, 0, .3) 32%, transparent 72%), linear-gradient(180deg, #000, rgba(0, 0, 0, .25) 120px, transparent 45%);
+    mask-composite: intersect; }
+  & #tiles { background: rgba(255, 255, 255, .06); }
+  & .tile-head { border-bottom-color: rgba(255, 255, 255, .06); }
+  /* the plan: the step at work lit like the keyboard's place, its figure in the ticking face */
+  & .tile-plan { border-bottom-color: rgba(255, 255, 255, .05); }
+  & .pl-n { font-family: var(--mono); font-size: 11px; letter-spacing: 0; }
+  & .pl-m.doing { background: #fff; box-shadow: 0 0 6px rgba(255, 255, 255, .55); }
+  & .pl-step.doing .pl-mark::before { background: #fff; box-shadow: 0 0 8px rgba(255, 255, 255, .6); }
+  & .pl-now.done { text-shadow: 0 0 10px oklch(0.82 0.15 160 / .35); }
+  & .plan-pop { border-radius: 14px; border-color: rgba(255, 255, 255, .1); box-shadow: var(--shadow-float), inset 0 1px 0 rgba(255, 255, 255, .05); }
+  & #tiles:not([data-n="1"]) .tile.on .tile-head { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 16px 18px -16px rgba(255, 255, 255, .1); }
+  & .th-name { font-weight: 600; }
+
+  /* ---- buttons, choices, fields ---- */
+  & .btn { border-radius: 8px; }
+  & .btn.primary { border-radius: 999px; background: var(--text); border-color: var(--text); color: #000; font-weight: 600; box-shadow: 0 0 18px rgba(255, 255, 255, .12); }
+  & .btn.primary:hover { background: #fff; border-color: #fff; }
+  & .seg:not(.tabs) { border-radius: 999px; background: rgba(255, 255, 255, .03); border-color: var(--line-2); }
+  & .seg:not(.tabs) button { border-radius: 999px; padding: 0 10px; }
+  & .seg:not(.tabs) button.on { background: var(--text); color: #000; box-shadow: 0 0 12px rgba(255, 255, 255, .14); }
+  & #split button { padding: 0; }
+  & .seg.tabs button.on::after { box-shadow: 0 0 8px rgba(255, 255, 255, .45); }
+  & .switch.on { background: var(--text); box-shadow: 0 0 12px rgba(255, 255, 255, .16); }
+  & .switch.on i { background: #000; }
+  & .input { border-radius: 8px; background: rgba(255, 255, 255, .03); }
+  & .input:focus, & .space-input, & .th-rename { border-color: rgba(255, 255, 255, .5); box-shadow: 0 0 0 3px rgba(255, 255, 255, .07); }
+  & .chip { border-radius: 999px; }
+  & kbd { font: 500 10px/1 var(--mono); border-radius: 5px; background: rgba(255, 255, 255, .04); }
+
+  /* ---- what floats: near-solid, lit along the top edge ---- */
+  & .scrim { background: rgba(0, 0, 0, .6); }
+  & .menu, & .tip { background: #0b0b0d; border-color: rgba(255, 255, 255, .1); box-shadow: var(--shadow-float), inset 0 1px 0 rgba(255, 255, 255, .05); }
+  & .menu-item { border-radius: 8px; }
+  & .dialog, & .palette { background: rgba(9, 9, 11, .985); border-color: rgba(255, 255, 255, .1); border-radius: 16px;
+    box-shadow: var(--shadow-float), inset 0 1px 0 rgba(255, 255, 255, .06); }
+  & .callout { border-radius: 12px; background: rgba(255, 255, 255, .03); border-color: var(--line-2); }
+  & .glance-card, & .glance-short { background: #09090b; border-color: rgba(255, 255, 255, .09); border-radius: 12px; }
+  & .glance-short:hover { border-color: rgba(255, 255, 255, .24); }
+
+  /* ---- pages ---- */
+  & .page-head .d-title { font-size: 24px; letter-spacing: -.026em; }
+  & .kpi > b { font-size: 25px; letter-spacing: -.035em; }
+  & .sec.block { border-top-color: rgba(255, 255, 255, .07); }
+  & .row.sel { background: rgba(255, 255, 255, .07); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .055); }
+  /* the bars that mean something glow a little, as the marks do */
+  & .cbar.t-needs .cbar-fill { box-shadow: 0 0 12px oklch(0.86 0.14 85 / .25); }
+  & .cbar.t-done .cbar-fill { box-shadow: 0 0 12px oklch(0.82 0.15 160 / .28); }
+  & .cbar.t-error .cbar-fill { box-shadow: 0 0 12px oklch(0.7 0.18 22 / .25); }
+  & .cbar.quiet .cbar-fill { box-shadow: none; }
+  & .glance-compact.ready { border-radius: 999px; background: var(--text); border-color: var(--text); color: #000; font-weight: 600; box-shadow: 0 0 14px rgba(255, 255, 255, .2); }
+  & .glance-compact.ready:hover { background: #fff; border-color: #fff; }
+}

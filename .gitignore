@@ -1,0 +1,10 @@
+node_modules
+assets/logo-candidates/
+launch/
+__pycache__/
+*.pyc
+*.log
+Thumbs.db
+desktop.ini
+.DS_Store
+.wrangler/

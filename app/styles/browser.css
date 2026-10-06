@@ -1,0 +1,161 @@
+/* The Browser (browser.js): a third column of the window that slides in from its right edge while the chats make room.
+   Inside it a slab like the panel the chats sit in: the pages as tabs, the address, a line saying which chat works in
+   the page and what it is doing, and the page itself, which main lays over .web-page once the panel stands still.
+   Colour keeps its meaning: white is a chat at work in the page (its tab's dot, a soft light round the page), yellow
+   a chat that needs the person on this page. */
+
+/* the width of the window's third column (shell.css) right now: 0 while the panel is closed, its full width while it
+   is open; it slides between the two */
+@property --web-w { syntax: '<length>'; inherits: true; initial-value: 0px; }
+
+body { transition: --web-w 460ms cubic-bezier(.32, .72, 0, 1); }
+body.web-drag { transition: none; }
+
+.web { grid-row: 2; grid-column: 3; position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+/* the card keeps its full width while the column grows under it: tied to the column's left edge, it slides in */
+.web-card {
+  position: absolute; left: 0; top: 0; bottom: 8px; width: calc(var(--web-full, 640px) - 8px);
+  display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 12px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 10px 40px -16px rgba(0, 0, 0, .6);
+  opacity: .35; transform: scale(.985); transform-origin: 0 50%;
+  transition: opacity 360ms cubic-bezier(.32, .72, 0, 1), transform 460ms cubic-bezier(.32, .72, 0, 1);
+}
+body.web-open .web-card { opacity: 1; transform: none; }
+body.web-drag .web-card { transition: none; }
+/* the grip on its left edge, in the gap between the chats and the panel (a .grip, shell.css): drag to widen */
+.web-grip { grid-row: 2; grid-column: 3; justify-self: start; margin: 0 0 8px -9px; display: none; }
+body.web-open .web-grip { display: block; }
+
+/* ---- whose browser it is, then its pages, as tabs ---- */
+.web-top { flex: none; height: 46px; display: flex; align-items: center; gap: 2px; padding: 6px 6px 0 7px; }
+.web-whose { flex: 0 1 auto; min-width: 0; max-width: 34%; height: 28px; display: flex; align-items: center; gap: 7px; margin-right: 6px; padding: 0 12px 0 8px;
+  border-right: 1px solid var(--line-2); color: var(--text-2); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.web-whose .i { flex: none; color: var(--text-3); }
+.web-whose-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.web-tabs { position: relative; flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 3px; overflow-x: auto; scrollbar-width: none; }
+.web-tabs::-webkit-scrollbar { display: none; }
+.web-tab {
+  position: relative; flex: 0 1 200px; min-width: 104px; height: 36px; display: flex; align-items: center; gap: 9px; padding: 0 5px 0 9px;
+  border-radius: 9px; color: var(--text-3); transition: background-color 140ms var(--ease), color 140ms var(--ease);
+}
+.web-tab:hover { background: var(--hover); color: var(--text-2); }
+.web-tab.on { background: var(--active); color: var(--text); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05); }
+.web-fav { flex: none; width: 16px; height: 16px; display: grid; place-items: center; border-radius: 4px; overflow: hidden; background: var(--fill-2); }
+.web-fav img { width: 16px; height: 16px; object-fit: contain; }
+.web-fav b { font-size: 10px; font-weight: 650; color: var(--text-2); }
+.web-tab-words { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; line-height: 1.25; }
+.web-tab-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 500; }
+.web-tab-who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10.5px; color: var(--text-3); }
+.web-tab-who:empty { display: none; }
+.web-tab.held .web-tab-who::before { content: 'you have it · '; color: var(--text-2); }
+/* a chat at work in it: a white dot that breathes */
+.web-live { flex: none; width: 6px; height: 6px; margin-right: 2px; border-radius: 50%; background: var(--text); display: none; }
+.web-tab.busy .web-live { display: block; animation: web-breathe 1.6s ease-in-out infinite; }
+/* being recorded as a GIF: a red dot, still (a page that needs the person stays yellow) */
+.web-tab.rec .web-live { display: block; background: var(--red); animation: none; }
+.web-tab.needs .web-live { display: block; background: var(--yellow); animation: none; box-shadow: 0 0 8px oklch(0.86 0.14 85 / .6); }
+@keyframes web-breathe { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, .55); } 50% { box-shadow: 0 0 0 4px rgba(255, 255, 255, 0); } }
+.web-x { flex: none; width: 20px; height: 20px; display: none; place-items: center; border-radius: 5px; color: var(--text-3); }
+.web-x:hover { background: var(--fill-2); color: var(--text); }
+.web-tab:hover .web-x, .web-tab.on .web-x, .web-tab:focus-visible .web-x { display: grid; }
+.web-tab:hover .web-live, .web-tab.on .web-live { margin-right: 0; }
+.web-top .icon-btn { width: 30px; height: 30px; }
+
+/* ---- the address, and what can be done to the page ---- */
+.web-bar { position: relative; flex: none; height: 46px; display: flex; align-items: center; gap: 1px; padding: 0 8px 0 6px; }
+.web-bar .icon-btn { width: 30px; height: 30px; }
+.web-bar .icon-btn:disabled { opacity: .35; pointer-events: none; }
+.web-where {
+  flex: 1; min-width: 0; height: 32px; display: flex; align-items: center; gap: 9px; margin: 0 6px 0 5px; padding: 0 12px 0 11px;
+  border-radius: 999px; background: rgba(255, 255, 255, .035); border: 1px solid var(--line); cursor: text;
+  transition: border-color 140ms var(--ease), background-color 140ms var(--ease), box-shadow 140ms var(--ease);
+}
+.web-where:hover { border-color: var(--line-2); }
+.web-where:focus-within { border-color: rgba(255, 255, 255, .42); background: rgba(255, 255, 255, .055); box-shadow: 0 0 0 3px rgba(255, 255, 255, .06); }
+.web-site { flex: none; display: grid; place-items: center; width: 16px; height: 16px; color: var(--text-3); }
+.web-site img { width: 15px; height: 15px; border-radius: 3px; object-fit: contain; }
+.web-site b { width: 16px; height: 16px; display: grid; place-items: center; border-radius: 4px; background: var(--fill-2); font-size: 10px; font-weight: 650; color: var(--text-2); }
+.web-url { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; background: none; outline: none; font-size: 12.5px; color: var(--text-2); user-select: text; text-overflow: ellipsis; }
+.web-url:focus { color: var(--text); }
+.web-url::placeholder { color: var(--text-3); }
+.web-hold {
+  flex: none; height: 28px; display: inline-flex; align-items: center; gap: 6px; margin-right: 2px; padding: 0 11px 0 9px;
+  border-radius: 999px; border: 1px solid var(--line-2); color: var(--text-2); font-size: 12px; font-weight: 500; white-space: nowrap;
+}
+.web-hold:hover { background: var(--hover); color: var(--text); }
+.web-hold.on { background: var(--text); border-color: var(--text); color: #000; font-weight: 600; box-shadow: 0 0 14px rgba(255, 255, 255, .16); }
+/* the hairline under the bar; while the page loads, a light runs along it */
+.web-bar::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: 0; height: 1px; background: var(--line); }
+.web-bar.loading::before {
+  content: ''; position: absolute; z-index: 1; left: 10px; bottom: 0; width: 34%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .9), transparent); animation: web-load 1.15s cubic-bezier(.4, 0, .2, 1) infinite;
+}
+@keyframes web-load { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+
+/* ---- who works in the page, and what it is doing ---- */
+.web-now { flex: none; height: 32px; display: flex; align-items: center; gap: 7px; padding: 0 14px; overflow: hidden; white-space: nowrap; font-size: 12px; color: var(--text-3); }
+.web-now > * { flex: none; }
+.web-now b { font-weight: 550; color: var(--text-2); }
+.web-now .doing { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
+.web-now .ago { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--text-4); }
+.web-now.busy b, .web-now.busy .doing { color: var(--text); }
+.web-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text); animation: web-breathe 1.6s ease-in-out infinite; }
+.web-now.quiet b { color: var(--text-3); }
+.web-now.needs { color: var(--yellow); background: oklch(0.86 0.14 85 / .07); }
+.web-now.needs b, .web-now.needs .doing { color: var(--yellow); }
+.web-now.needs .i { color: var(--yellow); }
+.web-ok { margin-left: auto; height: 22px; padding: 0 9px; border-radius: 999px; border: 1px solid oklch(0.86 0.14 85 / .35); color: var(--yellow); font-size: 11.5px; font-weight: 500; }
+.web-ok:hover { background: oklch(0.86 0.14 85 / .12); }
+/* a chat stopped at a site of the ask-first list: the person's yes, then no, side by side */
+.web-ok + .web-ok { margin-left: 0; }
+.web-allow { background: oklch(0.86 0.14 85 / .14); }
+.web-allow:hover { background: oklch(0.86 0.14 85 / .24); }
+
+/* Settings > Browser: the sites a chat opens only on the person's yes, one a line */
+.set-row.ask-row { flex-direction: column; align-items: stretch; gap: 8px; }
+.ask-list { height: auto; min-height: 150px; padding: 8px 10px; line-height: 1.5; resize: vertical; white-space: pre; overflow-x: auto; }
+
+/* ---- the page: main lays the real one over this box; under it, its picture while it is away, or the empty words.
+   The page is a window of its own: Windows 11 rounds its corners by 8px, and so does this box. ---- */
+.web-page {
+  position: relative; flex: 1; min-height: 0; margin: 0 7px 7px; overflow: hidden; border-radius: 8px;
+  background: var(--well); box-shadow: 0 0 0 1px var(--line);
+  transition: box-shadow 320ms var(--ease);
+}
+.web-page.live { box-shadow: 0 0 0 1px rgba(255, 255, 255, .42), 0 0 26px -2px rgba(255, 255, 255, .16); }
+.web-page.needs { box-shadow: 0 0 0 1px oklch(0.86 0.14 85 / .55), 0 0 28px -2px oklch(0.86 0.14 85 / .2); }
+.web-still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: left top; display: block; }
+.web-empty {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  padding: 32px; text-align: center; color: var(--text-3);
+}
+.web-empty-mark { width: 56px; height: 56px; display: grid; place-items: center; margin-bottom: 6px; border-radius: 16px; color: var(--text-2);
+  background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, .09), rgba(255, 255, 255, .02)); box-shadow: inset 0 0 0 1px var(--line-2); }
+.web-empty h2 { font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
+.web-empty p { max-width: 340px; font-size: 12.5px; line-height: 1.55; }
+.web-empty-keys { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 12px; }
+
+/* ---- the globe on a chat's strip: its browser, how many pages it holds; a white dot while the chat works in one, a
+   yellow one while it needs the person on one ---- */
+.th-tools .th-web { position: relative; width: auto; min-width: 26px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.th-web-n { font-size: 11px; font-weight: 500; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.th-web.on .th-web-n, .th-web:hover .th-web-n { color: var(--text-2); }
+.th-web.busy::after, .th-web.needs::after { content: ''; position: absolute; top: 4px; left: 16px; width: 6px; height: 6px; border-radius: 50%; box-shadow: 0 0 0 2px var(--panel); }
+.th-web.busy::after { background: var(--text); animation: web-breathe 1.6s ease-in-out infinite; }
+.th-web.needs::after { background: var(--yellow); }
+.th-web.needs { color: var(--yellow); }
+
+/* ---- the Noir look: obsidian with the rim of light, as the panel the chats sit in ---- */
+html:not([data-look="grey"]) {
+  & .web-card { border-color: rgba(255, 255, 255, .075); border-radius: 14px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .85), 0 40px 100px -40px #000, inset 0 1px 0 rgba(255, 255, 255, .03); }
+  & .web-card::after { content: ''; position: absolute; z-index: 5; inset: 0; border-radius: 13px; pointer-events: none;
+    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .26);
+    mask-image: linear-gradient(90deg, #000, rgba(0, 0, 0, .3) 32%, transparent 72%), linear-gradient(180deg, #000, rgba(0, 0, 0, .25) 120px, transparent 45%);
+    mask-composite: intersect; }
+  & .web-tab.on { background: rgba(255, 255, 255, .075); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .045), inset 0 1px 0 rgba(255, 255, 255, .06); }
+  & .web-where { background: rgba(255, 255, 255, .03); border-color: rgba(255, 255, 255, .09); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .03); }
+  & .web-page { background: #020203; }
+  & .web-now .ago, & .th-web-n { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0; }
+  & .th-web.needs::after { box-shadow: 0 0 0 2px var(--panel), 0 0 8px oklch(0.86 0.14 85 / .55); }
+}

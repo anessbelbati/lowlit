@@ -1,0 +1,207 @@
+/* The Viewer (viewer.js): pictures, videos and sounds in a fourth column of the window, which slides in from its right
+   edge while the chats make room, as the Browser does (the two take turns). Inside it a slab like the Browser's:
+   whose Viewer it is and what it shows, the stage, the bar that plays a video or a sound, what the file is, the few
+   words a chat said with it, and the strip of every file it showed. Black stays black: the stage is the darkest thing
+   in the window, so what is on it reads true. */
+
+/* the width of the window's fourth column right now: 0 while the Viewer is closed, its full width while it is open */
+@property --view-w { syntax: '<length>'; inherits: true; initial-value: 0px; }
+
+body { transition: --web-w 460ms cubic-bezier(.32, .72, 0, 1), --view-w 460ms cubic-bezier(.32, .72, 0, 1); }
+body.vw-drag { transition: none; }
+
+.vw { grid-row: 2; grid-column: 4; position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+.vw-card {
+  position: absolute; left: 0; top: 0; bottom: 8px; width: calc(var(--view-full, 640px) - 8px);
+  display: flex; flex-direction: column; overflow: hidden; outline: none;
+  border-radius: 12px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 10px 40px -16px rgba(0, 0, 0, .6);
+  opacity: .35; transform: scale(.985); transform-origin: 0 50%;
+  transition: opacity 360ms cubic-bezier(.32, .72, 0, 1), transform 460ms cubic-bezier(.32, .72, 0, 1);
+}
+body.vw-open .vw-card { opacity: 1; transform: none; }
+body.vw-drag .vw-card { transition: none; }
+.vw-grip { grid-row: 2; grid-column: 4; justify-self: start; margin: 0 0 8px -9px; display: none; }
+body.vw-open .vw-grip { display: block; }
+/* files dragged over it: a ring says they can be let go here */
+.vw.drop .vw-card { box-shadow: 0 0 0 1px rgba(255, 255, 255, .5), 0 0 30px -4px rgba(255, 255, 255, .2); }
+
+/* the whole window, for a closer look (F); Escape brings it back beside the chat */
+body.vw-big .vw { position: fixed; z-index: 35; top: var(--titlebar); left: 0; right: 0; bottom: 0; }
+body.vw-big .vw-card { left: 8px; right: 8px; width: auto; }
+body.vw-big .vw-grip { display: none; }
+
+/* ---- whose Viewer, what it shows, how the files stand ---- */
+.vw-top { flex: none; height: 46px; display: flex; align-items: center; gap: 2px; padding: 6px 6px 0 7px; }
+.vw-whose { flex: 0 1 auto; min-width: 0; max-width: 34%; height: 28px; display: flex; align-items: center; gap: 7px; margin-right: 8px; padding: 0 12px 0 8px;
+  border-right: 1px solid var(--line-2); color: var(--text-2); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.vw-whose .i { flex: none; color: var(--text-3); }
+.vw-whose-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.vw-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 500; color: var(--text); }
+.vw-modes { flex: none; display: flex; align-items: center; gap: 1px; margin-right: 4px; }
+.vw-modes:empty { display: none; }
+.vw-top .icon-btn { width: 30px; height: 30px; }
+.vw-wipe-btn { height: 26px; margin-left: 4px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--text-3); font-size: 11.5px; font-weight: 500; }
+.vw-wipe-btn:hover { color: var(--text); background: var(--hover); }
+.vw-wipe-btn.on { background: var(--text); border-color: var(--text); color: #000; font-weight: 600; }
+
+/* ---- the stage ---- */
+.vw-stage {
+  position: relative; flex: 1; min-height: 0; margin: 0 7px; overflow: hidden; border-radius: 8px; outline: none;
+  background: #000; box-shadow: 0 0 0 1px var(--line); display: flex;
+}
+.vw-stage.zoomed { cursor: grab; }
+.vw-stage.moving { cursor: grabbing; }
+.vw-pane { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+.vw-stage[data-mode="compare-side"] .vw-pane + .vw-pane { box-shadow: -1px 0 0 rgba(255, 255, 255, .14); }
+.vw-stage[data-mode="compare-wipe"] .vw-pane { position: absolute; inset: 0; }
+/* the box that zooms and moves: a picture sits in its middle at its own size, smaller when it does not fit; a video,
+   a drawing without a size of its own, and two pictures being compared fill it, so the two of a pair match */
+.vw-zoom { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; transform-origin: 0 0; will-change: transform; }
+.vw-media { display: block; flex: none; max-width: 100%; max-height: 100%; user-select: none; -webkit-user-drag: none; }
+video.vw-media, img.vw-media.vw-svg, .vw-stage[data-mode^="compare"] img.vw-media {
+  position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; object-fit: contain;
+}
+video.vw-media { background: #000; }
+/* what shows through a picture with see-through parts: a dark board */
+img.vw-media { background: repeating-conic-gradient(#19191c 0% 25%, #101012 0% 50%) 50% / 16px 16px; }
+img.vw-media.vw-svg, .vw-stage[data-mode^="compare"] img.vw-media { background: none; }
+.vw-stage.pixels .vw-media { image-rendering: pixelated; }
+/* each file's name at its foot, while two or more stand on the stage */
+.vw-label { position: absolute; left: 10px; bottom: 10px; z-index: 2; max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 3px 9px; border-radius: 999px; background: rgba(0, 0, 0, .62); backdrop-filter: blur(8px); color: var(--text-2); font-size: 11px; font-weight: 500; pointer-events: none; }
+.vw-stage[data-mode="compare-wipe"] .vw-top-pane .vw-label { left: auto; right: 10px; }
+
+/* the line to wipe between two files laid one over the other */
+.vw-wipe-handle { position: absolute; z-index: 3; top: 0; bottom: 0; width: 24px; margin-left: -12px; cursor: col-resize; touch-action: none; }
+.vw-wipe-handle::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%); background: rgba(255, 255, 255, .85); box-shadow: 0 0 10px rgba(0, 0, 0, .7); }
+.vw-wipe-handle::after { content: ''; position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; transform: translate(-50%, -50%); border-radius: 50%;
+  background: rgba(0, 0, 0, .55); backdrop-filter: blur(6px); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .9), 0 4px 14px rgba(0, 0, 0, .5); }
+
+/* the one before, the next one, and where this one stands in what the arrows go through: there to see, brighter under the pointer */
+.vw-hint { position: absolute; z-index: 3; top: 50%; width: 34px; height: 34px; margin-top: -17px; display: grid; place-items: center; border-radius: 50%;
+  background: rgba(0, 0, 0, .5); backdrop-filter: blur(8px); color: var(--text-2); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1);
+  opacity: .75; transition: opacity 160ms var(--ease), background-color 160ms var(--ease); }
+.vw-hint.prev { left: 10px; }
+.vw-hint.next { right: 10px; }
+.vw-stage:hover .vw-hint { opacity: 1; }
+.vw-hint:hover { background: rgba(0, 0, 0, .75); color: var(--text); }
+.vw-count { position: absolute; z-index: 3; top: 10px; right: 10px; padding: 2px 8px; border-radius: 999px; background: rgba(0, 0, 0, .55); backdrop-filter: blur(8px);
+  font-family: var(--mono); font-size: 10.5px; color: var(--text-2); pointer-events: none; }
+.vw-hint[hidden], .vw-count[hidden] { display: none; }
+
+/* a file not shown yet: a copy that plays here is being made, or why it cannot be shown */
+.vw-wait { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 28px; text-align: center; color: var(--text-3); font-size: 12.5px; line-height: 1.5; }
+.vw-wait b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-size: 13px; font-weight: 600; }
+.vw-wait-bar { width: min(260px, 70%); height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.vw-wait-bar i { display: block; height: 100%; width: 100%; transform-origin: 0 50%; transform: scaleX(var(--k, 0)); background: var(--text); transition: transform 300ms var(--ease); }
+.vw-wait.failed b { color: var(--text-2); }
+/* a file on its way: a soft light runs along the top of the stage */
+.vw-busy { position: absolute; z-index: 4; left: 0; right: 0; top: 0; height: 1px; overflow: hidden; pointer-events: none; }
+.vw-busy::before { content: ''; position: absolute; left: 0; top: 0; width: 34%; height: 1px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .9), transparent);
+  animation: vw-run 1.15s cubic-bezier(.4, 0, .2, 1) infinite; }
+@keyframes vw-run { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+.vw-pane.loading::after { content: ''; position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, .15); border-top-color: rgba(255, 255, 255, .85); animation: vw-turn .8s linear infinite; pointer-events: none; }
+@keyframes vw-turn { to { transform: rotate(1turn); } }
+
+/* nothing to show */
+.vw-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 32px; text-align: center; color: var(--text-3); }
+.vw-empty-mark { width: 56px; height: 56px; display: grid; place-items: center; margin-bottom: 6px; border-radius: 16px; color: var(--text-2);
+  background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, .09), rgba(255, 255, 255, .02)); box-shadow: inset 0 0 0 1px var(--line-2); }
+.vw-empty b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--text); }
+.vw-empty span { max-width: 340px; font-size: 12.5px; line-height: 1.55; }
+.vw-empty .vw-open-btn { margin-top: 6px; height: 30px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--text-2); font-size: 12px; font-weight: 500; }
+.vw-empty .vw-open-btn:hover { background: var(--hover); color: var(--text); }
+
+/* a sound: its name, and its levels while it plays */
+.vw-sound { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; color: var(--text-2); }
+.vw-sound b { max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+.vw-sound canvas { width: min(420px, 86%); height: 96px; }
+.vw-sound + audio { display: none; }
+
+/* many files: a grid of their small pictures */
+.vw-grid { position: absolute; inset: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); align-content: start; gap: 10px; padding: 12px; }
+.vw-cell { display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 10px; text-align: left; transition: background-color 140ms var(--ease); }
+.vw-cell:hover { background: rgba(255, 255, 255, .05); }
+.vw-cell-pic { position: relative; aspect-ratio: 4 / 3; display: grid; place-items: center; overflow: hidden; border-radius: 7px; background: #0b0b0d; box-shadow: inset 0 0 0 1px var(--line); color: var(--text-3); }
+.vw-cell-pic img { width: 100%; height: 100%; object-fit: cover; transition: transform 300ms var(--ease); }
+.vw-cell:hover .vw-cell-pic img { transform: scale(1.04); }
+.vw-cell-time { position: absolute; right: 6px; bottom: 6px; padding: 1px 6px; border-radius: 999px; background: rgba(0, 0, 0, .7); font-family: var(--mono); font-size: 10px; color: var(--text); }
+.vw-cell-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; font-size: 11.5px; color: var(--text-2); }
+
+/* ---- the bar under a video or a sound ---- */
+.vw-bar { flex: none; height: 44px; display: flex; align-items: center; gap: 4px; padding: 0 10px 0 9px; }
+.vw-bar[hidden] { display: none; }
+.vw-play { width: 32px; height: 32px; border-radius: 50%; color: #000; background: var(--text); box-shadow: 0 0 16px rgba(255, 255, 255, .14); }
+.vw-play:hover { background: #fff; color: #000; }
+.vw-time { flex: none; min-width: 112px; margin: 0 8px 0 6px; font-family: var(--mono); font-size: 11px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.vw-track { position: relative; flex: 1; min-width: 60px; height: 24px; cursor: pointer; touch-action: none; }
+.vw-track::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 2px; background: rgba(255, 255, 255, .1); transition: height 140ms var(--ease), margin 140ms var(--ease); }
+.vw-buffered, .vw-done { position: absolute; left: 0; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 2px; width: 100%; transform-origin: 0 50%; transform: scaleX(0); transition: height 140ms var(--ease), margin 140ms var(--ease); }
+.vw-buffered { background: rgba(255, 255, 255, .16); }
+.vw-done { background: var(--text); }
+.vw-knob { position: absolute; top: 50%; left: 0; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 4px rgba(255, 255, 255, .12);
+  transform: scale(0); transition: transform 140ms var(--ease); }
+.vw-track:hover::before, .vw-track:hover .vw-buffered, .vw-track:hover .vw-done { height: 5px; margin-top: -2.5px; }
+.vw-track:hover .vw-knob, .vw-track.held .vw-knob { transform: scale(1); }
+.vw-speed { flex: none; min-width: 38px; height: 26px; margin-left: 8px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--line-2); font-family: var(--mono); font-size: 11px; color: var(--text-2); }
+.vw-speed:hover { background: var(--hover); color: var(--text); }
+.vw-bar .icon-btn { width: 30px; height: 30px; }
+.vw-bar .icon-btn.on { color: var(--text); background: var(--active); }
+/* the sound level, beside the speaker: the same in every chat's Viewer */
+.vw-vol { position: relative; flex: none; width: 64px; height: 24px; margin: 0 2px 0 2px; cursor: pointer; touch-action: none; }
+.vw-vol::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 3px; margin-top: -1.5px; border-radius: 2px; background: rgba(255, 255, 255, .1); transition: height 140ms var(--ease), margin 140ms var(--ease); }
+.vw-vol-done { position: absolute; left: 0; top: 50%; width: 100%; height: 3px; margin-top: -1.5px; border-radius: 2px; background: var(--text-2); transform-origin: 0 50%; transform: scaleX(0);
+  transition: height 140ms var(--ease), margin 140ms var(--ease), background 140ms var(--ease); }
+.vw-vol-knob { position: absolute; top: 50%; left: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #fff; transform: scale(0); transition: transform 140ms var(--ease); }
+.vw-vol:hover::before, .vw-vol:hover .vw-vol-done, .vw-vol.held::before, .vw-vol.held .vw-vol-done { height: 5px; margin-top: -2.5px; }
+.vw-vol:hover .vw-vol-done, .vw-vol.held .vw-vol-done { background: var(--text); }
+.vw-vol:hover .vw-vol-knob, .vw-vol.held .vw-vol-knob { transform: scale(1); }
+/* a narrow Viewer keeps the speaker; its wheel and the arrow keys still set the level */
+.vw-bar { container-type: inline-size; }
+@container (max-width: 430px) { .vw-vol { display: none; } }
+
+/* ---- what the file is ---- */
+.vw-info { flex: none; height: 34px; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 15px; overflow: hidden; white-space: nowrap; font-size: 12px; }
+.vw-info:empty { display: none; }
+.vw-info-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text); font-weight: 550; }
+.vw-info-facts { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); font-size: 10.5px; color: var(--text-3); }
+.vw-info-acts { margin-left: auto; display: flex; gap: 1px; }
+.vw-info-acts .icon-btn { width: 26px; height: 26px; }
+
+/* the words a chat said with what it showed: a line of text under the file's name, nothing around it */
+.vw-note { flex: none; margin: -6px 0 6px; padding: 0 15px; max-height: 4.5em; overflow-y: auto; font-size: 12px; line-height: 1.5; color: var(--text-2); }
+.vw-note[hidden] { display: none; }
+
+/* ---- what the arrows go through: every file this chat showed, the newest last, or the folder of the one in front ---- */
+.vw-strip { flex: none; display: flex; gap: 6px; padding: 2px 7px 7px; }
+.vw-strip[hidden] { display: none; }
+.vw-thumbs { flex: 1; min-width: 0; display: flex; gap: 6px; padding: 2px; overflow-x: auto; scrollbar-width: thin; }
+.vw-lists { flex: none; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 0 2px; }
+.vw-list-btn { height: 20px; min-width: 74px; padding: 0 7px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-radius: 6px;
+  color: var(--text-3); font-size: 11px; font-weight: 500; transition: color 140ms var(--ease), background-color 140ms var(--ease); }
+.vw-list-btn:hover { color: var(--text); background: var(--hover); }
+.vw-list-btn.on { color: var(--text); background: var(--active); }
+.vw-list-btn i { font-style: normal; font-family: var(--mono); font-size: 10px; color: var(--text-3); }
+.vw-thumb { flex: none; width: 56px; height: 42px; display: grid; place-items: center; overflow: hidden; border-radius: 6px; background: #0b0b0d; color: var(--text-3);
+  box-shadow: inset 0 0 0 1px var(--line); opacity: .62; transition: opacity 140ms var(--ease), box-shadow 140ms var(--ease); }
+.vw-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.vw-thumb:hover { opacity: 1; }
+.vw-thumb.on { opacity: 1; box-shadow: 0 0 0 1.5px var(--text); }
+
+/* ---- its button on a chat's strip, beside the globe ---- */
+.th-tools .th-view { position: relative; width: auto; min-width: 26px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.th-view-n { font-size: 11px; font-weight: 500; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.th-view.on .th-view-n, .th-view:hover .th-view-n { color: var(--text-2); }
+
+/* ---- the Noir look: obsidian with the rim of light, as the Browser ---- */
+html:not([data-look="grey"]) {
+  & .vw-card { border-color: rgba(255, 255, 255, .075); border-radius: 14px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .85), 0 40px 100px -40px #000, inset 0 1px 0 rgba(255, 255, 255, .03); }
+  & .vw-card::after { content: ''; position: absolute; z-index: 5; inset: 0; border-radius: 13px; pointer-events: none;
+    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .26);
+    mask-image: linear-gradient(90deg, #000, rgba(0, 0, 0, .3) 32%, transparent 72%), linear-gradient(180deg, #000, rgba(0, 0, 0, .25) 120px, transparent 45%);
+    mask-composite: intersect; }
+  & .vw-stage { background: #000; }
+  & .th-view-n { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0; }
+}

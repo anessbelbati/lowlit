@@ -1,0 +1,134 @@
+/* The Nest: the chat of the person's record, big, with his day in a column beside it (nest.js). It reads like the rest
+   of the window, in sentence case; colour keeps its meaning: yellow is what waits for him (an urgent line, a late
+   date), nothing else is coloured. The day stands at the top of the column, large, the one big word on the screen. */
+
+/* the logo in the title bar is the Nest's button: lit while the Nest is open, as what is switched on is lit */
+.brand { margin-left: -5px; padding: 3px 9px 3px 5px; border-radius: 999px; }
+.brand:hover { background: var(--hover); }
+.brand.on { background: var(--active); box-shadow: inset 0 0 0 1px var(--line-2); }
+
+/* ---- the column: where the panel beside a chat stands otherwise, as wide as the person made it (sizes.js), and never
+   so wide the chat keeps less than 420px; too narrow for both, the chat keeps the room (shell.css) ---- */
+.nest-rail {
+  flex: none; width: clamp(260px, var(--rail-w, min(340px, 30cqw)), calc(100cqw - 420px)); min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 24px; padding: 20px 18px 18px;
+  border-left: 1px solid var(--line);
+}
+@container stage (max-width: 880px) {
+  .nest-rail { padding: 16px 14px 14px; }
+}
+
+.nest-head { display: flex; flex-direction: column; gap: 2px; }
+.nest-label { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.nest-head > .nest-label { font-size: 11.5px; font-weight: 500; color: var(--text-3); }
+.nest-day { margin-top: 4px; font-size: 28px; font-weight: 650; line-height: 1.05; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.nest-date { font-size: 13px; color: var(--text-2); }
+@container stage (max-width: 880px) {
+  .nest-day { font-size: 23px; }
+}
+
+.nest-part { display: flex; flex-direction: column; gap: 8px; }
+.nest-list { list-style: none; margin: 0; padding: 0; }
+.nest-item { display: flex; align-items: baseline; gap: 9px; padding: 7px 0; border-top: 1px solid var(--line); color: var(--text-2); font-size: 13px; line-height: 1.4; }
+.nest-item:first-child { border-top: 0; padding-top: 2px; }
+.nest-item > .glyph, .nest-item > .glyph-gap { flex: none; align-self: flex-start; margin-top: 3px; }
+.nest-item[data-urgent="true"] { color: var(--text); }
+/* three lines at most: the whole line is on its tip */
+.nest-text { min-width: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.nest-on { flex: none; width: 72px; font-size: 11.5px; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nest-late { color: var(--yellow); }
+.nest-more { align-self: flex-start; font-size: 12px; color: var(--text-3); }
+.nest-more:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+.nest-quiet { margin: 0; font-size: 12.5px; line-height: 1.5; }
+.nest-part > .btn { align-self: flex-start; }
+
+.nest-chats { display: flex; flex-direction: column; gap: 2px; margin: 0 -8px; }
+.nest-chat { display: grid; grid-template-columns: 14px minmax(0, 1fr); column-gap: 9px; align-items: center; padding: 6px 8px; border-radius: 8px; }
+.nest-chat:hover { background: var(--hover); }
+.nest-chat > .glyph { grid-row: 1 / span 2; align-self: start; margin-top: 2px; }
+.nest-chat-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nest-chat-doing { grid-column: 2; font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nest-chat-doing:empty { display: none; }
+
+.nest-foot { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.nest-key { font-size: 11.5px; line-height: 1.5; color: var(--text-3); }
+.nest-key:hover { color: var(--text-2); }
+
+/* ---- the Nest's own page, while no chat of the window works in the record ---- */
+#nest { overflow-y: auto; }
+.nest-page { flex: 1 0 auto; display: flex; min-height: 100%; }
+.nest-welcome {
+  flex: 1; min-width: 0; max-width: 720px; display: flex; flex-direction: column; justify-content: center; gap: 12px;
+  padding: 48px clamp(24px, 6vw, 72px);
+}
+.nest-welcome > .nest-label { font-size: 11.5px; font-weight: 500; color: var(--text-3); }
+.nest-title { margin: 0; font-size: 30px; line-height: 1.12; font-weight: 650; letter-spacing: -.03em; text-wrap: balance; }
+.nest-lead { margin: 0; max-width: 56ch; font-size: 14px; line-height: 1.6; color: var(--text-2); }
+.nest-offer { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 14px; }
+.nest-offer p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--text-2); }
+.nest-offer .nest-folder { font-family: var(--mono); font-size: 12px; color: var(--text-3); overflow-wrap: anywhere; }
+.nest-rail-page { align-self: stretch; }
+@container stage (max-width: 880px) {
+  .nest-rail-page { display: none; }
+}
+
+/* ---- Noir: the logo lit as a picked tab is ---- */
+html:not([data-look="grey"]) {
+  & .brand.on { background: rgba(255, 255, 255, .075); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .045), inset 0 1px 0 rgba(255, 255, 255, .05); }
+}
+
+/* ---- the Nest's name with its icon: a nest of twigs with two eggs, lit in the mood's light ---- */
+.nest-brand { display: inline-flex; align-items: center; gap: 6px; }
+.nest-brand .i { color: rgb(var(--nest-glow, 241, 241, 243)); }
+
+/* ---- the Nest's mood (Settings > The Nest), while it is open: the whole window turns warm as a lamp, or to a calm
+   ---- night. Set on the body, so the ground every terminal takes (read from the root, desk.js) stays the window's own;
+   ---- the Nest's chat takes the mood's ground itself (nest.js). Yellow keeps its one meaning: what waits for him. ---- */
+html[data-nest="lamp"] body {
+  --bg: #0c0907; --panel: #15100c; --float: rgba(25, 19, 14, .97); --solid-float: #1c1510;
+  --text: #f4ebdd; --text-2: #cdbca7; --text-3: #95836f; --text-4: #635546;
+  --hover: rgba(255, 214, 170, .055); --active: rgba(255, 214, 170, .095); --fill: rgba(255, 214, 170, .045); --fill-2: rgba(255, 214, 170, .09);
+  --line: rgba(255, 222, 188, .085); --line-2: rgba(255, 222, 188, .13); --accent: #f4ebdd; --focus: rgba(255, 214, 170, .6);
+  --nest-glow: 255, 190, 118;
+}
+html[data-nest="night"] body {
+  --bg: #04080a; --panel: #0a1215; --float: rgba(13, 22, 26, .97); --solid-float: #0f1a1e;
+  --text: #e6f0f1; --text-2: #a9bec3; --text-3: #6f868c; --text-4: #485a5f;
+  --hover: rgba(190, 235, 230, .05); --active: rgba(190, 235, 230, .09); --fill: rgba(190, 235, 230, .04); --fill-2: rgba(190, 235, 230, .085);
+  --line: rgba(200, 240, 240, .08); --line-2: rgba(200, 240, 240, .125); --accent: #e6f0f1; --focus: rgba(190, 235, 230, .6);
+  --nest-glow: 200, 240, 228;
+}
+/* the ground under the light, and the words that stand on it, in the mood's colours */
+html[data-nest="lamp"]:not(.glass) .backdrop, html[data-nest="night"]:not(.glass) .backdrop,
+html[data-nest="lamp"].glass .backdrop::after, html[data-nest="night"].glass .backdrop::after { background: var(--bg); }
+html[data-nest="lamp"].glass .backdrop { background: rgba(12, 9, 7, .86); }
+html[data-nest="night"].glass .backdrop { background: rgba(4, 8, 10, .86); }
+html[data-nest="lamp"]:not([data-look="grey"]) :is(.titlebar, .sidebar) { --text-2: #e2d3c0; --text-3: #b3a08b; --text-4: #7c6c5b; }
+html[data-nest="night"]:not([data-look="grey"]) :is(.titlebar, .sidebar) { --text-2: #c9dadd; --text-3: #94abb0; --text-4: #627a80; }
+/* the light in rays, a little softer in here */
+html[data-nest="lamp"] .noir, html[data-nest="night"] .noir { opacity: .75; }
+/* the column: a lamp's glow in its top corner, or the moon's */
+html[data-nest="lamp"] .nest-rail { background: radial-gradient(120% 60% at 0% 0%, rgba(255, 186, 110, .075), transparent 62%); }
+html[data-nest="night"] .nest-rail { background: radial-gradient(90% 50% at 100% 0%, rgba(200, 240, 228, .065), transparent 62%); }
+
+/* ---- a word for the time of day, and its face ---- */
+.nest-hello { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; font-size: 13px; color: var(--text-2); }
+.nest-face { color: rgb(var(--nest-glow, 241, 241, 243)); letter-spacing: .02em; white-space: nowrap; }
+
+/* ---- the slow lights: fireflies drifting up in the lamp's mood, stars coming and going in the night's (nest.js) ---- */
+.nest-rail { position: relative; }
+.nest-rail > :not(.nest-air) { position: relative; z-index: 1; }
+.nest-air { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.nest-air i { position: absolute; left: var(--x); top: var(--y); width: var(--s); height: var(--s); border-radius: 50%;
+  background: rgb(var(--nest-glow, 241, 241, 243)); box-shadow: 0 0 7px 1px rgba(var(--nest-glow, 241, 241, 243), .5);
+  animation: nest-drift var(--d) ease-in-out var(--w) infinite; }
+@keyframes nest-drift {
+  0% { opacity: 0; transform: translate(0, 0); }
+  25% { opacity: .7; }
+  75% { opacity: .45; }
+  100% { opacity: 0; transform: translate(var(--dx), -48px); }
+}
+html[data-nest="night"] .nest-air i { box-shadow: 0 0 5px rgba(var(--nest-glow, 241, 241, 243), .55); animation-name: nest-twinkle; }
+@keyframes nest-twinkle { 0%, 100% { opacity: .12; } 50% { opacity: .8; } }
+html[data-motion="off"] .nest-air i { animation: none; opacity: .35; }
+@media (prefers-reduced-motion: reduce) { .nest-air i { animation: none; opacity: .35; } }

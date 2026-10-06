@@ -1,0 +1,98 @@
+/* The work clock (shift.js): in the title bar at its right end, where nothing that comes or goes can push it, and
+   of one width whatever it says. By itself it counts the session up: a dot and the time, dim on a break, "Away" once
+   a break has ended it. A countdown shows only when one is started: its line empties as its time runs out, white
+   while there is time, yellow in the last half hour; past the end the line is red and the figure says how far over. */
+.tb-shift { flex: none; width: 116px; height: 24px; display: flex; align-items: center; gap: 8px; padding: 0 9px; border-radius: 6px; color: var(--text-2); font-size: 12px; font-weight: 500; }
+.tb-shift:hover, .tb-shift.open { background: var(--hover); color: var(--text); }
+.ts-track { flex: 1; min-width: 0; height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.ts-track i { display: block; height: 100%; border-radius: 2px; background: var(--text-2); transition: width 900ms var(--ease); }
+.ts-dot { display: none; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ts-time { flex: none; min-width: 46px; text-align: right; font-family: var(--mono); font-size: 11px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.tb-shift.late .ts-track i { background: var(--yellow); }
+.tb-shift.late .ts-time { color: var(--yellow); }
+.tb-shift.over .ts-track { background: color-mix(in oklch, var(--red) 55%, transparent); }
+.tb-shift.over .ts-time { color: var(--red); }
+/* counting up: the dot sits just before the time, where a countdown's time stands, so the figure never jumps */
+.tb-shift:is(.up, .paused, .idle) { justify-content: flex-end; gap: 7px; }
+.tb-shift:is(.up, .paused, .idle) .ts-track { display: none; }
+.tb-shift:is(.up, .paused, .idle) .ts-dot { display: block; }
+.tb-shift.up .ts-time { min-width: 0; }
+.tb-shift:is(.paused, .idle) { color: var(--text-4); }
+.tb-shift:is(.paused, .idle) .ts-time { min-width: 0; }
+.tb-shift:is(.paused, .idle) .ts-dot { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
+.tb-shift:is(.paused, .idle):hover { color: var(--text-2); }
+.still .ts-track i { transition: none; }
+
+/* what opens under it */
+.shift-pop { position: fixed; z-index: 48; width: 324px; -webkit-app-region: no-drag; }
+.sp-box { display: flex; flex-direction: column; gap: 10px; padding: 14px 14px 12px; border-radius: 12px; background: #1a1a1d; border: 1px solid var(--line-2); box-shadow: var(--shadow-float); animation: menu-in 150ms var(--ease) both; }
+.still .sp-box { animation: none; }
+.sp-head { display: flex; align-items: baseline; gap: 10px; }
+.sp-name { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; color: var(--text-2); text-transform: none; }
+.sp-span { flex: none; font-family: var(--mono); font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.sp-big { display: flex; align-items: baseline; gap: 7px; color: var(--text-3); font-size: 12.5px; }
+.sp-big b { font-family: var(--mono); font-size: 26px; font-weight: 500; letter-spacing: -0.02em; color: var(--text); font-variant-numeric: tabular-nums; }
+.sp-big.late b { color: var(--yellow); }
+.sp-big.over b { color: var(--red); }
+.sp-big.paused b { color: var(--text-3); }
+.sp-offer { width: 100%; justify-content: center; }
+.sp-track { display: block; height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.sp-track i { display: block; height: 100%; border-radius: 3px; background: var(--text-2); }
+.sp-track.late i { background: var(--yellow); }
+.sp-track.over { background: color-mix(in oklch, var(--red) 55%, transparent); }
+.sp-note { margin: 0; color: var(--text-3); font-size: 12px; line-height: 1.45; }
+.sp-label { margin-top: 4px; color: var(--text-4); font-size: 11.5px; font-weight: 500; }
+.sp-chips { display: grid; grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr)); gap: 5px; }
+.sp-chip { height: 26px; border-radius: 7px; background: var(--fill); color: var(--text-2); text-align: center; font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.sp-chip:hover { background: var(--fill-2); color: var(--text); }
+.sp-chip.on { background: var(--text); color: #000; }
+.sp-chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.sp-row { display: flex; align-items: center; gap: 6px; }
+.sp-grow { flex: 1; }
+.sp-day { display: flex; flex-direction: column; gap: 6px; }
+.sp-figs { display: flex; gap: 16px; color: var(--text-3); font-size: 12px; }
+.sp-figs b { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+.sp-line { margin: 0; display: flex; gap: 8px; min-width: 0; color: var(--text-2); font-size: 12px; line-height: 1.45; }
+.sp-line > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-k { flex: none; width: 64px; color: var(--text-4); }
+.sp-foot { display: flex; gap: 6px; margin-top: 2px; padding-top: 10px; border-top: 1px solid var(--line); }
+
+/* the Dashboard: the day as one line from 5 in the morning to 5 the next, the work sessions as bands under the time
+   at the computer, the countdowns as a thin line along the bottom */
+.work-sec .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.wd-day { display: flex; flex-direction: column; gap: 6px; }
+.wd-line { position: relative; height: 26px; border-radius: 6px; background: var(--fill); overflow: hidden; }
+.wd-session { position: absolute; top: 0; bottom: 0; background: rgba(255, 255, 255, .1); border-left: 1px solid var(--line-2); border-right: 1px solid var(--line-2); }
+.wd-here { position: absolute; top: 9px; height: 8px; border-radius: 2px; background: var(--text-2); text-decoration: none; }
+.wd-count { position: absolute; bottom: 2px; height: 2px; border-radius: 1px; background: var(--yellow); opacity: .7; text-decoration: none; }
+.wd-count.open { opacity: 1; }
+.wd-now { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--text); }
+.wd-axis { position: relative; height: 14px; }
+.wd-axis span { position: absolute; transform: translateX(-50%); color: var(--text-4); font-size: 10.5px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.wd-axis span:first-child { transform: none; }
+.wd-axis span:last-child { transform: translateX(-100%); }
+/* seven days are seven slim bars, not seven blocks; a click on one shows that day */
+.wd-week .chart { max-width: 560px; }
+.wd-week .bar-slot { justify-content: center; cursor: pointer; border-radius: 3px; }
+.wd-week .bar-slot i { width: min(100%, 40px); }
+.wd-week .bar-slot.picked i { box-shadow: 0 0 0 1.5px var(--text); }
+.wd-week .bar-slot:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.work-sec .wd-back { margin-left: auto; align-self: center; }
+
+/* Settings: a usual shift on one line, its name, when it starts and how many hours */
+.set-row.work-row { gap: 8px; }
+.work-row .name-input { width: 128px; }
+.work-row .quiet { flex: none; font-size: 12px; }
+/* wide enough for "08:00 PM" and the clock button where Windows writes times with AM and PM */
+.work-at { flex: none; width: 132px; font-variant-numeric: tabular-nums; }
+.work-hours, .work-gap { flex: none; width: 68px; font-variant-numeric: tabular-nums; }
+.work-gap-row { gap: 8px; }
+.work-gap-row > .quiet { flex: none; font-size: 12px; }
+.work-row .mini { margin-left: auto; }
+
+html:not([data-look="grey"]) {
+  & .tb-shift { border-radius: 999px; padding: 0 11px; }
+  & .sp-box { background: #0b0b0d; border-color: rgba(255, 255, 255, .1); box-shadow: var(--shadow-float), inset 0 1px 0 rgba(255, 255, 255, .05); }
+  & .sp-chip { border-radius: 999px; }
+  & .wd-here { background: rgba(255, 255, 255, .62); }
+}

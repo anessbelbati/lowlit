@@ -1,0 +1,49 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      # the terminal's scripts are enough to check the pages: no Electron download, no native build
+      - run: npm ci --prefix app --ignore-scripts
+      - run: node scripts/check.cjs
+
+  # what the README tells a stranger to do, on a machine that has never seen the project: install, then start the
+  # window (hidden, with made-up chats) and run its own checks
+  install:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run check
+      - name: The window starts and its checks pass
+        shell: powershell
+        run: |
+          $lines = & powershell -NoProfile -ExecutionPolicy Bypass -File app\dev\run-selftest.ps1 -Name ci -Only states -TimeoutSec 600
+          $lines
+          if (-not ($lines -match '^RESULT: \d+ passed, 0 failed')) { exit 1 }
+      - name: Keep the report when it failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selftest
+          path: |
+            ~\AppData\Local\lowlit-dev\runs\ci\report.txt
+            ~\AppData\Local\lowlit-dev\runs\ci\stdout.log
+            ~\AppData\Local\lowlit-dev\runs\ci\stderr.log
+          if-no-files-found: ignore

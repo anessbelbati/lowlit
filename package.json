@@ -1,0 +1,21 @@
+{
+  "name": "lowlit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A quiet desk for your Claude Code chats: every chat in one window, the numbers beside them.",
+  "license": "MIT",
+  "author": "Aness Belbati",
+  "homepage": "https://github.com/anessbelbati/lowlit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anessbelbati/lowlit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/anessbelbati/lowlit/issues"
+  },
+  "scripts": {
+    "postinstall": "cd app && npm install",
+    "start": "npm start --prefix app",
+    "check": "node scripts/check.cjs"
+  }
+}
