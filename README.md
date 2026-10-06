@@ -123,7 +123,7 @@ Settings > What it reads says the same inside the app.
 
 Anthropic's own desktop app runs several Claude Code sessions side by side, with its own interface. If that is what you want, use it: it is good.
 
-Lowlit is for people who live in the terminal `claude` and want to keep it: the same program, with your own configuration, many at once, and the things the terminal cannot show you around it. It is the public copy of the desk its author works at every day, with two dozen chats open.
+Lowlit is for people who live in the terminal `claude` and want to keep it: the same program, with your own configuration, many at once, and the things the terminal cannot show you around it. It is the public copy of the desk its author works at every day.
 
 It is early. It runs on Windows only for now. Expect rough edges, and tell me about them.
 
