@@ -59,7 +59,7 @@ Every picture here was taken from Lowlit's own test window, with made-up chats.
 
 ## Install
 
-You need Windows 10 or 11, [Node.js](https://nodejs.org) 20 or newer, Git, and Claude Code installed and logged in (typing `claude` in a terminal starts it).
+You need Windows 10 or 11, [Node.js](https://nodejs.org) 22 or newer, Git, and Claude Code installed and logged in (typing `claude` in a terminal starts it).
 
 ```
 git clone https://github.com/anessbelbati/lowlit
