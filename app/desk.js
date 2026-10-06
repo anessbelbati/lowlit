@@ -399,7 +399,7 @@ function drawBar() {
 
 // ---- the head of the window, as T3 Code has it: where the person is first (the workspace, else the folder), then
 // ---- the chat with what it is doing, then the branch it works on ----
-const VIEW_NAMES = { stats: 'Dashboard', history: 'History', record: 'Record', overview: 'Every chat at a glance', settings: 'Settings' };
+const VIEW_NAMES = { stats: 'Dashboard', history: 'History', record: 'Record', overview: 'Every chat at a glance', settings: 'Settings', servers: 'Servers' };
 function chatMenu(chat, x, y) {
   popMenu(x, y, [
     { label: 'Rename', icon: 'pencil', run: () => { setView(chat.id); ChatView.rename(); } },

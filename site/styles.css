@@ -1,6 +1,7 @@
 /* Lowlit's site, in the look of the app itself (app/styles/noir.css): black, the light of a lamp just past the top
    left corner drawn in fine dots, the pictures lying over it like the app's own panel. Reading is in Inter; small
-   figures and commands are in Geist Mono. White is what can be pressed. Nothing else has a colour. */
+   figures, keys and commands are in Geist Mono. White is what can be pressed. The only colours are the app's own
+   workspace colours, under the tabs that show them. */
 
 @font-face {
   font-family: 'Inter Variable'; font-style: normal; font-display: swap; font-weight: 100 900;
@@ -25,11 +26,19 @@
   --panel: #060607;
   --line: rgba(255, 255, 255, .07);
   --line-2: rgba(255, 255, 255, .11);
+  /* a workspace's colour, as the app draws it under its tab (app/styles/shell.css) */
+  --rose: #efa3c7;
+  --sky: #77c9f3;
+  --mint: #71d3ba;
+  --olive: #bbc679;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --page: 1120px;
   --gutter: clamp(20px, 5vw, 48px);
   --gap: clamp(32px, 5vw, 72px);
-  --part: clamp(96px, 13vw, 176px);
+  --part: clamp(88px, 12vw, 160px);
+}
+@supports (color: oklch(0 0 0)) {
+  :root { --rose: oklch(0.80 0.10 350); --sky: oklch(0.80 0.10 232); --mint: oklch(0.80 0.10 175); --olive: oklch(0.80 0.10 115); }
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -40,7 +49,7 @@ body {
   font: 400 17px/1.6 var(--font); letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;
 }
-h1, h2, h3, p, ol, ul, figure, pre { margin: 0; }
+h1, h2, h3, p, ol, ul, dl, dd, figure, pre { margin: 0; }
 ol, ul { padding: 0; list-style: none; }
 img { display: block; max-width: 100%; height: auto; }
 a { color: inherit; text-decoration: none; }
@@ -51,6 +60,10 @@ button { font: inherit; letter-spacing: inherit; }
 :focus-visible { outline: 2px solid rgba(255, 255, 255, .6); outline-offset: 3px; border-radius: 4px; }
 code { font-family: var(--mono); font-size: .9em; letter-spacing: 0; }
 p code { padding: .1em .38em; border-radius: 6px; background: rgba(255, 255, 255, .07); color: var(--text); }
+kbd {
+  display: inline-block; padding: 0 .44em; border-radius: 5px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .05);
+  color: var(--text); font: 500 .8em/1.6 var(--mono); letter-spacing: 0; text-shadow: none; white-space: nowrap;
+}
 
 .nav, main > section, .foot { position: relative; z-index: 1; width: min(100% - 2 * var(--gutter), var(--page)); margin-inline: auto; }
 
@@ -82,7 +95,7 @@ p code { padding: .1em .38em; border-radius: 6px; background: rgba(255, 255, 255
 @media (scripting: none) { .light::before { display: block; } }
 
 /* ---- what stands on the light: a soft black halo round every letter, so words cut through the dots ---- */
-.nav, .hero > :not(.shot) { text-shadow: 0 0 2px #000, 0 0 4px #000, 0 0 12px rgba(0, 0, 0, .95); }
+.nav, .hero > * { text-shadow: 0 0 2px #000, 0 0 4px #000, 0 0 12px rgba(0, 0, 0, .95); }
 
 .nav { display: flex; align-items: center; justify-content: space-between; gap: 24px; height: 76px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); font-size: 19px; font-weight: 600; letter-spacing: -.04em; }
@@ -99,14 +112,13 @@ p code { padding: .1em .38em; border-radius: 6px; background: rgba(255, 255, 255
 .pill:hover { background: rgba(32, 32, 36, .8); border-color: rgba(255, 255, 255, .22); }
 
 /* ---- the top ---- */
-.hero { padding-top: clamp(52px, 8.5vw, 116px); }
-.eyebrow, .fine { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-family: var(--mono); letter-spacing: 0; }
-.eyebrow { color: #cfcfd4; font-size: 12.5px; font-weight: 500; line-height: 1.4; }
-.eyebrow i, .fine i { flex: none; width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: .6; }
-h1 { margin-top: 22px; max-width: 12em; font-size: clamp(40px, 7.2vw, 88px); line-height: 1; font-weight: 600; letter-spacing: -.048em; text-wrap: balance; }
-.lede { margin-top: 26px; max-width: 33em; color: #c3c3c9; font-size: clamp(17px, 1.55vw, 20.5px); line-height: 1.55; text-wrap: pretty; }
+.hero { padding-top: clamp(36px, 5.4vw, 68px); }
+.eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; color: #cfcfd4; font: 500 12.5px/1.4 var(--mono); letter-spacing: 0; }
+.eyebrow i { flex: none; width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: .6; }
+h1 { margin-top: 18px; max-width: 11.5em; font-size: clamp(38px, 5.8vw, 72px); line-height: 1; font-weight: 600; letter-spacing: -.048em; text-wrap: balance; }
+.lede { margin-top: 20px; max-width: 42em; color: #c3c3c9; font-size: clamp(17px, 1.55vw, 20px); line-height: 1.5; text-wrap: pretty; }
 .lede code { padding: 0; background: none; }
-.cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; height: 46px; padding: 0 22px; border-radius: 999px;
   border: 1px solid var(--line-2); background: rgba(10, 10, 12, .7); color: var(--text); font-size: 15px; font-weight: 600; letter-spacing: -.01em;
@@ -116,12 +128,11 @@ h1 { margin-top: 22px; max-width: 12em; font-size: clamp(40px, 7.2vw, 88px); lin
 .btn:hover { background: rgba(32, 32, 36, .8); border-color: rgba(255, 255, 255, .22); }
 .btn.solid { background: var(--text); border-color: var(--text); color: #000; box-shadow: 0 0 22px rgba(255, 255, 255, .14); }
 .btn.solid:hover { background: #fff; border-color: #fff; }
-.fine { margin-top: 22px; color: #a5a5ac; font-size: 12px; line-height: 1.5; }
 
 /* ---- a picture of the app: obsidian over the light, a thin rim of it along the top and the left where the lamp
    ---- catches the edge, round the corner and fading away from it (the app's own panel) ---- */
 .shot {
-  position: relative; overflow: hidden; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .09); background: var(--panel);
+  position: relative; display: block; overflow: hidden; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .09); background: var(--panel);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, .85), 0 50px 120px -50px #000;
 }
 .shot img { width: 100%; }
@@ -133,33 +144,57 @@ h1 { margin-top: 22px; max-width: 12em; font-size: clamp(40px, 7.2vw, 88px); lin
   mask-image: linear-gradient(90deg, #000, rgba(0, 0, 0, .3) 32%, transparent 72%), linear-gradient(180deg, #000, rgba(0, 0, 0, .25) 120px, transparent 45%);
   mask-composite: intersect;
 }
-.shot.lead { margin-top: clamp(48px, 7vw, 88px); }
+
+/* ---- the stage: the app's own workspace tabs, and under them the window with that workspace in front. The pictures
+   ---- lie on one another and the chosen one comes up; without scripts they stand one under the other (noscript.css) ---- */
+.stage { margin-top: clamp(36px, 4.4vw, 52px); }
+.tabs { display: flex; flex-wrap: wrap; gap: 2px 4px; }
+.tab {
+  position: relative; height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: none;
+  color: #c3c3c9; font-size: 14.5px; font-weight: 500; cursor: pointer;
+  transition: color 160ms var(--ease), background 160ms var(--ease);
+}
+.tab:hover { color: #fff; }
+.tab.on { background: rgba(255, 255, 255, .1); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); color: #fff; }
+.tab[class*='ws-']::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: 5px; height: 2px; border-radius: 1px; background: var(--ws); opacity: .85; }
+.ws-rose { --ws: var(--rose); }
+.ws-sky { --ws: var(--sky); }
+.ws-mint { --ws: var(--mint); }
+.ws-olive { --ws: var(--olive); }
+.ws-both { --ws: linear-gradient(90deg, var(--rose) 0 47%, transparent 47% 53%, var(--sky) 53%); }
+.panes { display: grid; margin-top: 14px; }
+.pane { grid-area: 1 / 1; min-width: 0; opacity: 0; visibility: hidden; transition: opacity 360ms var(--ease), visibility 0s linear 360ms; }
+.pane.on { opacity: 1; visibility: visible; transition: opacity 360ms var(--ease); }
+.pane figcaption { margin-top: 16px; color: #c3c3c9; font-size: 15.5px; line-height: 1.55; text-wrap: pretty; }
 
 /* ---- the parts of the page ---- */
-h2 { font-size: clamp(28px, 3.7vw, 46px); line-height: 1.08; font-weight: 600; letter-spacing: -.038em; text-wrap: balance; }
-h3 { font-size: 20px; line-height: 1.25; font-weight: 600; letter-spacing: -.022em; }
-.sub { margin-top: 16px; max-width: 34em; color: var(--text-2); font-size: clamp(16px, 1.4vw, 18.5px); text-wrap: pretty; }
-.three, .features, .trust, .install { padding-top: var(--part); }
+h2 { font-size: clamp(26px, 3.2vw, 40px); line-height: 1.08; font-weight: 600; letter-spacing: -.038em; text-wrap: balance; }
+.sub { margin-top: 14px; max-width: 34em; color: var(--text-2); font-size: clamp(16px, 1.4vw, 18px); text-wrap: pretty; }
+.screens, .never, .install { padding-top: var(--part); }
 
-.three ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(24px, 3.5vw, 48px); margin-top: clamp(40px, 5vw, 64px); }
-.three li { padding-top: 22px; border-top: 1px solid var(--line-2); }
-.n, .kicker { color: var(--text-3); font: 500 12.5px/1 var(--mono); letter-spacing: 0; }
-.three h3 { margin-top: 18px; }
-.three li p { margin-top: 10px; color: var(--text-2); font-size: 15.5px; }
+/* ten other screens, each cut to the part that says what it is; a press shows the whole window */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(32px, 4.4vw, 56px) clamp(20px, 3vw, 40px); margin-top: clamp(32px, 4vw, 52px); }
+.tile { display: block; cursor: zoom-in; }
+.tile .shot { box-shadow: 0 0 0 1px rgba(0, 0, 0, .85); transition: border-color 160ms var(--ease); }
+.tile:hover .shot, .tile:focus-visible .shot { border-color: rgba(255, 255, 255, .24); }
+.tile img { aspect-ratio: 8 / 5; object-fit: cover; }
+.cap { display: block; margin-top: 14px; max-width: 34em; color: var(--text-2); font-size: 15.5px; line-height: 1.55; text-wrap: pretty; }
+.cap b { margin-right: 4px; color: var(--text); }
 
-.features { display: grid; gap: clamp(88px, 12vw, 168px); }
-.feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--gap); align-items: center; }
-.feature.flip { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
-.feature.flip .words { order: 2; }
-.feature h2 { margin-top: 16px; font-size: clamp(26px, 3.1vw, 38px); }
-.feature .words p:not(.kicker) { margin-top: 16px; max-width: 30em; color: var(--text-2); font-size: 16.5px; line-height: 1.62; text-wrap: pretty; }
+.last { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(28px, 4vw, 48px) clamp(20px, 3vw, 40px); align-items: center; margin-top: clamp(40px, 5.5vw, 72px); }
+.float-card img { width: min(100%, 300px); margin-inline: auto; }
+.keys .cap { margin-top: 0; }
+.keys dl { margin-top: 22px; }
+.keys dl div { display: grid; grid-template-columns: 11.5em minmax(0, 1fr); gap: 16px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line); }
+.keys dt { color: var(--text-3); font-size: 14px; }
+.keys dd { color: var(--text-2); font-size: 15px; }
 
-.trust { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: var(--gap); align-items: start; }
-.trust-head p { margin-top: 18px; color: var(--text-2); font-size: 16.5px; line-height: 1.62; text-wrap: pretty; }
-.never li { padding: 18px 0; border-top: 1px solid var(--line-2); color: var(--text-2); font-size: 16px; line-height: 1.55; }
+.never { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); column-gap: var(--gap); align-items: start; }
+.never ul, .never p { grid-column: 2; }
+.never li { padding: 16px 0; border-top: 1px solid var(--line-2); color: var(--text-2); font-size: 16px; line-height: 1.55; }
+.never li:first-child { padding-top: 6px; border-top: 0; }
 .never b { color: var(--text); }
-.keeper { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 10px var(--gap); padding-top: 22px; border-top: 1px solid var(--line-2); }
-.keeper p { color: var(--text-2); font-size: 16px; line-height: 1.55; }
+.never p { padding-top: 20px; border-top: 1px solid var(--line-2); color: var(--text-2); font-size: 16px; line-height: 1.6; text-wrap: pretty; }
 
 .install > * { max-width: 720px; }
 .term { margin-top: 28px; overflow: hidden; border-radius: 14px; border: 1px solid var(--line-2); background: var(--panel); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04); }
@@ -179,20 +214,29 @@ h3 { font-size: 20px; line-height: 1.25; font-weight: 600; letter-spacing: -.022
 .foot nav a:hover { color: var(--text); }
 .foot p { grid-column: 1 / -1; max-width: 46em; color: var(--text-3); font-size: 13px; text-wrap: pretty; }
 
+/* ---- a screen at its full size, over the page: a press anywhere, or Esc, puts it away. 150.4vh is the width at
+   ---- which a picture of 8 by 5 stands 94vh high ---- */
+.zoom { width: min(96vw, 1600px, 150.4vh); max-width: none; max-height: none; margin: auto; padding: 0; overflow: hidden; border: 1px solid rgba(255, 255, 255, .14); border-radius: 14px; background: var(--panel); color: inherit; cursor: zoom-out; }
+.zoom img { width: 100%; }
+.zoom::backdrop { background: rgba(0, 0, 0, .9); }
+
 @media (max-width: 900px) {
-  .feature, .feature.flip, .trust, .keeper { grid-template-columns: minmax(0, 1fr); }
-  .feature.flip .words { order: 0; }
-  .three ol { grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .three li { padding: 22px 0 26px; }
-  .trust-head { padding-bottom: 32px; }
+  .never { grid-template-columns: minmax(0, 1fr); }
+  .never ul, .never p { grid-column: 1; }
+  .never ul { margin-top: 24px; }
+}
+@media (max-width: 700px) {
+  .tiles, .last { grid-template-columns: minmax(0, 1fr); }
+  /* a phone shows a whole window too small to read: a press opens the picture itself, to pinch */
+  .tile { cursor: pointer; }
 }
 @media (max-width: 640px) {
   .nav { height: 64px; }
   .nav nav a:not(.pill) { display: none; }
-  /* a line each: a dot left at the end of a line says nothing */
-  .eyebrow, .fine { flex-direction: column; align-items: flex-start; gap: 3px; }
-  .eyebrow i, .fine i { display: none; }
   .cta .btn { flex: 1 1 150px; }
+  .tab { padding: 0 11px; font-size: 14px; }
+  .tab[class*='ws-']::after { left: 11px; right: 11px; }
+  .keys dl div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .term pre { padding: 16px; font-size: 12.5px; }
   .foot { grid-template-columns: minmax(0, 1fr); }
 }

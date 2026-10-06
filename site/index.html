@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lowlit: a quiet desk for your Claude Code chats</title>
-<meta name="description" content="Run many Claude Code sessions in one window on Windows. Each chat is a real terminal running the real claude, with its cost, your usage limits, a browser it can drive and a viewer beside it. Free, open source, local.">
+<title>Lowlit: every Claude Code chat in one window</title>
+<meta name="description" content="Run many Claude Code sessions in one window on Windows. Real terminals running the real claude, grouped into workspaces, with their cost, your usage limits, a browser and a viewer beside them. Free, MIT, local.">
 <link rel="canonical" href="https://getlowlit.pages.dev/">
 <meta name="theme-color" content="#000000">
 <meta name="color-scheme" content="dark">
@@ -13,23 +13,24 @@
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Lowlit">
-<meta property="og:title" content="Lowlit: a quiet desk for your Claude Code chats">
-<meta property="og:description" content="Every Claude Code chat in one window, each one a real terminal running the real claude, with the numbers beside them. Free, open source, runs on your computer only.">
+<meta property="og:title" content="Lowlit: every Claude Code chat in one window">
+<meta property="og:description" content="Real terminals running the real claude, grouped into workspaces, with what each one needs, costs and runs. Windows, free, MIT, local.">
 <meta property="og:url" content="https://getlowlit.pages.dev/">
 <meta property="og:image" content="https://getlowlit.pages.dev/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Lowlit: four Claude Code chats side by side in one dark window, with the list of chats and the usage limits on the left">
+<meta property="og:image:alt" content="Lowlit: four Claude Code chats side by side in one dark window, with the workspaces, the list of chats and the usage limits on the left">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
+<noscript><link rel="stylesheet" href="noscript.css"></noscript>
 <script src="site.js" defer></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "Lowlit",
-  "description": "A desktop app that shows every Claude Code chat in one window: each chat a real terminal running the claude program, with its cost, the account's usage limits, a browser the chat can drive and a viewer beside it.",
+  "description": "A desktop app that shows every Claude Code chat in one window: each chat a real terminal running the claude program, grouped into workspaces, with its cost, the account's usage limits, a browser the chat can drive and a viewer beside it.",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Windows 10, Windows 11",
   "softwareVersion": "0.1.0",
@@ -53,8 +54,8 @@
     <span>lowlit</span>
   </a>
   <nav aria-label="Page">
-    <a href="#what">What it does</a>
-    <a href="#trust">What it never does</a>
+    <a href="#screens">Screens</a>
+    <a href="#never">What it never does</a>
     <a href="#install">Install</a>
     <a class="pill" href="https://github.com/anessbelbati/lowlit">GitHub</a>
   </nav>
@@ -62,113 +63,169 @@
 
 <main id="main">
   <section class="hero">
-    <p class="eyebrow"><span>For Claude Code on Windows</span><i></i><span>free and open source</span></p>
-    <h1>A quiet desk for your Claude&nbsp;Code chats.</h1>
-    <p class="lede">Every chat in one window. Each one a real terminal running the real <code>claude</code>. The numbers beside them.</p>
+    <p class="eyebrow"><span>Windows 10 and 11</span><i></i><span>free</span><i></i><span>MIT</span></p>
+    <h1>Every Claude&nbsp;Code chat in one&nbsp;window.</h1>
+    <p class="lede">Real terminals running the real <code>claude</code>. Grouped into workspaces. The ones that need you on top.</p>
     <div class="cta">
-      <a class="btn solid" href="#install">Get Lowlit</a>
-      <a class="btn" href="https://github.com/anessbelbati/lowlit">View on GitHub</a>
+      <a class="btn solid" href="#install">Install</a>
+      <a class="btn" href="https://github.com/anessbelbati/lowlit">GitHub</a>
     </div>
-    <p class="fine"><span>MIT licence</span><i></i><span>runs on your computer only</span><i></i><span>never sees your login</span></p>
-    <figure class="shot lead">
-      <img src="img/chats.webp" srcset="img/chats-800.webp 800w, img/chats.webp 1600w" sizes="(max-width: 1200px) 94vw, 1120px" width="1600" height="1000" fetchpriority="high"
-        alt="Lowlit with four Claude Code chats side by side: one waits for a permission, one compares prices with three subagents, one compacts its memory, one is finished. On the left, every chat sorted by who needs you, and the account's usage limits.">
-    </figure>
-  </section>
 
-  <section class="three" aria-labelledby="three-h">
-    <h2 id="three-h">Five chats in, the chats stop being the hard part.</h2>
-    <p class="sub">The hard part is three questions. Lowlit answers them without you asking.</p>
-    <ol>
-      <li>
-        <span class="n">01</span>
-        <h3>Which one waits for you?</h3>
-        <p>Your chats sort themselves into Needs you, Finished, Working and Idle, with how long each has waited. One key goes to the next one that waits.</p>
-      </li>
-      <li>
-        <span class="n">02</span>
-        <h3>How much of your plan is left?</h3>
-        <p>Your 5-hour and weekly limits, where they are heading at your pace, and when they reset. No more finding out mid-task.</p>
-      </li>
-      <li>
-        <span class="n">03</span>
-        <h3>What is each one running?</h3>
-        <p>What a chat cost at API list prices, its tokens, how full its context is, and the RAM and processor of everything it started.</p>
-      </li>
-    </ol>
-  </section>
-
-  <section id="what" class="features" aria-label="What it does">
-    <article class="feature">
-      <div class="words">
-        <p class="kicker">The Browser</p>
-        <h2>A browser each chat can drive.</h2>
-        <p>Ask a chat to open the page it just built. It reads it, clicks, types, looks at it as a phone, a tablet and a laptop in one go, and records a GIF of what it did.</p>
-        <p>You watch beside the chat and take the page over when you want. Sites on your ask-first list, like your mail and your payments, wait for your yes.</p>
+    <div class="stage" id="stage">
+      <div class="tabs" role="tablist" aria-label="The workspace in the picture">
+        <button class="tab on" type="button" role="tab" id="tab-all" aria-controls="pane-all" aria-selected="true">All</button>
+        <button class="tab ws-rose" type="button" role="tab" id="tab-shop" aria-controls="pane-shop" aria-selected="false" tabindex="-1">Shop</button>
+        <button class="tab ws-sky" type="button" role="tab" id="tab-work" aria-controls="pane-work" aria-selected="false" tabindex="-1">Work</button>
+        <button class="tab ws-mint" type="button" role="tab" id="tab-3d" aria-controls="pane-3d" aria-selected="false" tabindex="-1">3D</button>
+        <button class="tab ws-olive" type="button" role="tab" id="tab-app" aria-controls="pane-app" aria-selected="false" tabindex="-1">App</button>
+        <button class="tab ws-both" type="button" role="tab" id="tab-two" aria-controls="pane-two" aria-selected="false" tabindex="-1">Shop + Work</button>
       </div>
-      <figure class="shot">
-        <img src="img/browser.webp" srcset="img/browser-800.webp 800w, img/browser.webp 1600w" sizes="(max-width: 900px) 94vw, 660px" width="1600" height="1000" loading="lazy"
-          alt="A chat on the left and, beside it, the web page it opened in Lowlit's browser">
-      </figure>
-    </article>
-
-    <article class="feature flip">
-      <div class="words">
-        <p class="kicker">The Viewer</p>
-        <h2>See what your chats make.</h2>
-        <p>Pictures, videos and sounds open beside the chat that made them. Two takes side by side. A wipe to compare them. A video the chat can play, pause and step through.</p>
+      <div class="panes">
+        <figure class="pane on" role="tabpanel" id="pane-all" aria-labelledby="tab-all">
+          <div class="shot">
+            <img src="img/ws-all.webp" srcset="img/ws-all-800.webp 800w, img/ws-all.webp 1600w" sizes="(max-width: 1200px) 94vw, 1120px" width="1600" height="1000" fetchpriority="high"
+              alt="Lowlit with every chat: four on screen, thirteen in the list on the left under Needs you, Finished, Working and Idle, the workspace tabs above them and the usage limits below">
+          </div>
+          <figcaption>13 chats. The ones that need you are on top. One, two or four share the screen.</figcaption>
+        </figure>
+        <figure class="pane" role="tabpanel" id="pane-shop" aria-labelledby="tab-shop">
+          <div class="shot">
+            <img src="img/ws-shop.webp" srcset="img/ws-shop-800.webp 800w, img/ws-shop.webp 1600w" sizes="(max-width: 1200px) 94vw, 1120px" width="1600" height="1000" fetchpriority="low" decoding="async"
+              alt="The Shop workspace: its six chats in the list, two of them on screen">
+          </div>
+          <figcaption>A workspace is a set of folders. Click its tab and only its chats are left.</figcaption>
+        </figure>
+        <figure class="pane" role="tabpanel" id="pane-work" aria-labelledby="tab-work">
+          <div class="shot">
+            <img src="img/ws-work.webp" srcset="img/ws-work-800.webp 800w, img/ws-work.webp 1600w" sizes="(max-width: 1200px) 94vw, 1120px" width="1600" height="1000" fetchpriority="low" decoding="async"
+              alt="The Work workspace: its three chats in the list, two on screen, and on the other tabs the number of chats that wait there">
+          </div>
+          <figcaption>Each workspace has its colour. A tab counts the chats that wait in it.</figcaption>
+        </figure>
+        <figure class="pane" role="tabpanel" id="pane-3d" aria-labelledby="tab-3d">
+          <div class="shot">
+            <img src="img/ws-3d.webp" srcset="img/ws-3d-800.webp 800w, img/ws-3d.webp 1600w" sizes="(max-width: 1200px) 94vw, 1120px" width="1600" height="1000" fetchpriority="low" decoding="async"
+              alt="The 3D workspace: its two chats, side by side">
+          </div>
+          <figcaption><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>2</kbd> to <kbd>9</kbd> goes to a workspace. <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>1</kbd> is All.</figcaption>
+        </figure>
+        <figure class="pane" role="tabpanel" id="pane-app" aria-labelledby="tab-app">
+          <div class="shot">
+            <img src="img/ws-app.webp" srcset="img/ws-app-800.webp 800w, img/ws-app.webp 1600w" sizes="(max-width: 1200px) 94vw, 1120px" width="1600" height="1000" fetchpriority="low" decoding="async"
+              alt="The App workspace: its two chats, one of them asking a question">
+          </div>
+          <figcaption>A chat goes where its folder is. Right-click a chat to move its folder.</figcaption>
+        </figure>
+        <figure class="pane" role="tabpanel" id="pane-two" aria-labelledby="tab-two">
+          <div class="shot">
+            <img src="img/ws-two.webp" srcset="img/ws-two-800.webp 800w, img/ws-two.webp 1600w" sizes="(max-width: 1200px) 94vw, 1120px" width="1600" height="1000" fetchpriority="low" decoding="async"
+              alt="Two workspaces at once: Shop and Work, each a block of its own in the list, four of their chats on screen">
+          </div>
+          <figcaption><kbd>Ctrl</kbd>-click a second tab: both at once, each in its own block.</figcaption>
+        </figure>
       </div>
-      <figure class="shot">
-        <img src="img/viewer.webp" srcset="img/viewer-800.webp 800w, img/viewer.webp 1600w" sizes="(max-width: 900px) 94vw, 660px" width="1600" height="1000" loading="lazy"
-          alt="A chat on the left and, beside it, two pictures it made, shown side by side in the Viewer">
-      </figure>
-    </article>
-
-    <article class="feature">
-      <div class="words">
-        <p class="kicker">The Dashboard</p>
-        <h2>Everything running, on one page.</h2>
-        <p>What each session holds on your machine: its dev servers, its MCP servers, their ports, their RAM. The latest tool calls of every chat. Today, 7 days, 30 days.</p>
-      </div>
-      <figure class="shot">
-        <img src="img/dashboard.webp" srcset="img/dashboard-800.webp 800w, img/dashboard.webp 1600w" sizes="(max-width: 900px) 94vw, 660px" width="1600" height="1000" loading="lazy"
-          alt="The Dashboard: one bar per chat, what each session runs besides the agent with its RAM and processor, and the latest tool calls">
-      </figure>
-    </article>
-
-    <article class="feature flip">
-      <div class="words">
-        <p class="kicker">At a glance</p>
-        <h2>All of them, on one screen.</h2>
-        <p>Every chat as a card: who waits, who works, and each one's last words. Click one and you are in it.</p>
-      </div>
-      <figure class="shot">
-        <img src="img/glance.webp" srcset="img/glance-800.webp 800w, img/glance.webp 1600w" sizes="(max-width: 900px) 94vw, 660px" width="1600" height="1000" loading="lazy"
-          alt="Every chat at a glance: nine cards, each with its state, how long it has waited, its folder and its last words">
-      </figure>
-    </article>
-  </section>
-
-  <section id="trust" class="trust" aria-labelledby="trust-h">
-    <div class="trust-head">
-      <h2 id="trust-h">It is still the claude you know.</h2>
-      <p>Lowlit does not wrap or replace Claude Code. Each chat is a terminal running the program you already have, so your settings, hooks, MCP servers and slash commands work as they always do. Lowlit reads the files Claude Code writes on your disk, and shows what they say.</p>
     </div>
-    <ul class="never">
-      <li><b>Never sees your login.</b> It does not open the file that holds it, and stores no key.</li>
-      <li><b>Never talks to Anthropic.</b> It cannot log in, log out or switch accounts.</li>
-      <li><b>Never acts on its own.</b> It types into a chat only when you click a button that says so.</li>
-      <li><b>Nothing leaves your computer</b> unless you switch that on. The code is there to read.</li>
+  </section>
+
+  <section id="screens" class="screens" aria-labelledby="screens-h">
+    <h2 id="screens-h">Also in the window</h2>
+    <ul class="tiles">
+      <li>
+        <a class="tile" href="img/panel.webp">
+          <span class="shot"><img src="img/panel-tile.webp" width="800" height="500" loading="lazy" alt="The panel beside a chat: what you last asked, its latest words, what happened while you were away, and this turn's tool calls"></span>
+          <span class="cap"><b>Panel</b> Beside a chat: what you asked, this turn's tool calls, its subagents, what it changed.</span>
+        </a>
+      </li>
+      <li>
+        <a class="tile" href="img/cards.webp">
+          <span class="shot"><img src="img/cards-tile.webp" width="864" height="540" loading="lazy" alt="Every chat as a card, under its workspace: its state, its folder and branch, its last words, how far its plan is"></span>
+          <span class="cap"><b>Cards</b> Every chat as a card, by workspace.</span>
+        </a>
+      </li>
+      <li>
+        <a class="tile" href="img/dashboard-now.webp">
+          <span class="shot"><img src="img/dashboard-now-tile.webp" width="1072" height="670" loading="lazy" alt="The Dashboard: one bar per chat by workspace, then each session with what it runs besides the agent, its RAM and its processor"></span>
+          <span class="cap"><b>Dashboard</b> What each session runs besides the agent: dev servers, MCP servers, ports, RAM, CPU.</span>
+        </a>
+      </li>
+      <li>
+        <a class="tile" href="img/dashboard-today.webp">
+          <span class="shot"><img src="img/dashboard-today-tile.webp" width="1072" height="670" loading="lazy" alt="The Dashboard's day: what today cost at list prices, tokens, agent work, then day by day and hour by hour"></span>
+          <span class="cap"><b>Cost</b> What today cost at API list prices: by day, by hour, by chat.</span>
+        </a>
+      </li>
+      <li>
+        <a class="tile" href="img/chat-browser.webp">
+          <span class="shot"><img src="img/chat-browser-tile.webp" width="1000" height="625" loading="lazy" alt="A chat and, beside it, the web page it opened in Lowlit's browser, with a Take over button"></span>
+          <span class="cap"><b>Browser</b> A browser each chat can drive: open, read, click, type, screenshot. Watch, or take over.</span>
+        </a>
+      </li>
+      <li>
+        <a class="tile" href="img/chat-viewer.webp">
+          <span class="shot"><img src="img/chat-viewer-tile.webp" width="1000" height="625" loading="lazy" alt="A chat and, beside it, two pictures it made, side by side in the Viewer"></span>
+          <span class="cap"><b>Viewer</b> Pictures, video and sound open beside the chat that made them. Two takes side by side.</span>
+        </a>
+      </li>
+      <li>
+        <a class="tile" href="img/servers.webp">
+          <span class="shot"><img src="img/servers-tile.webp" width="1072" height="670" loading="lazy" alt="The Servers page: five pinned dev servers with their ports, three running, one stopped, one that stopped with an error, each with Start, Stop or Restart"></span>
+          <span class="cap"><b>Servers</b> Your dev servers, pinned: start, stop, restart, read what one printed.</span>
+        </a>
+      </li>
+      <li>
+        <a class="tile" href="img/history.webp">
+          <span class="shot"><img src="img/history-tile.webp" width="1072" height="670" loading="lazy" alt="History: past conversations by date on the left, one of them open on the right with a Resume here button"></span>
+          <span class="cap"><b>History</b> Every past conversation on the machine. Resume here.</span>
+        </a>
+      </li>
+      <li>
+        <a class="tile" href="img/search.webp">
+          <span class="shot"><img src="img/search-tile.webp" width="944" height="590" loading="lazy" alt="The search box over the window, listing the chats of this window and of other terminals, each with what it is doing"></span>
+          <span class="cap"><b>Search</b> <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>P</kbd>: jump to a chat, find something you typed, run a command.</span>
+        </a>
+      </li>
+      <li>
+        <a class="tile" href="img/closing.webp">
+          <span class="shot"><img src="img/closing-tile.webp" width="896" height="560" loading="lazy" alt="The question a close asks: keep them for next time, start fresh next time, keep running by the clock, or gaming mode"></span>
+          <span class="cap"><b>Closing</b> With chats open, it asks: keep them, start fresh, keep running by the clock, or gaming mode.</span>
+        </a>
+      </li>
     </ul>
-    <div class="keeper">
-      <h3>Chats that outlive the window.</h3>
-      <p>A small keeper process holds the terminals. Restart Lowlit, or let it crash, and your chats run on and are there when it opens again.</p>
+
+    <div class="last">
+      <figure class="float-card">
+        <img src="img/card.webp" width="336" height="573" loading="lazy" alt="The floating card: the chat in front, its plan with three of six steps done, its three subagents, its memory, its cost, and who needs you">
+      </figure>
+      <div class="keys">
+        <p class="cap"><b>Floating card</b> Stays over your other programs: the chat in front, its plan, who needs you.</p>
+        <dl>
+          <div><dt><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>F</kbd></dt><dd>The floating card</dd></div>
+          <div><dt><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>N</kbd></dt><dd>Next chat that needs you</dd></div>
+          <div><dt><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>T</kbd> / <kbd>W</kbd></dt><dd>New chat / close this one</dd></div>
+          <div><dt><kbd>Ctrl</kbd> <kbd>1</kbd> to <kbd>9</kbd></dt><dd>A chat by its number in the list</dd></div>
+          <div><dt><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Enter</kbd></dt><dd>One chat big, or back to side by side</dd></div>
+          <div><dt><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>B</kbd> / <kbd>M</kbd></dt><dd>Browser / Viewer</dd></div>
+          <div><dt><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>U</kbd> / <kbd>H</kbd></dt><dd>Dashboard / History</dd></div>
+          <div><dt><kbd>Ctrl</kbd> <kbd>,</kbd></dt><dd>Settings, with every key</dd></div>
+        </dl>
+      </div>
     </div>
+  </section>
+
+  <section id="never" class="never" aria-labelledby="never-h">
+    <h2 id="never-h">It never</h2>
+    <ul>
+      <li><b>opens your login file.</b> The key in it is never read or stored.</li>
+      <li><b>talks to Anthropic.</b> It cannot log in, log out or switch accounts.</li>
+      <li><b>types by itself.</b> Four buttons type into a chat, each on your click.</li>
+      <li><b>sends anything off your computer,</b> unless you switch that on.</li>
+    </ul>
+    <p>It is the <code>claude</code> you already run, in a terminal: your settings, hooks, MCP servers and slash commands work unchanged. A keeper process holds the terminals, so your chats run on through a restart or a crash of the window.</p>
   </section>
 
   <section id="install" class="install" aria-labelledby="install-h">
     <h2 id="install-h">Install</h2>
-    <p class="sub">You need Windows 10 or 11, Node.js 22 or newer, Git, and Claude Code installed.</p>
+    <p class="sub">Windows 10 or 11, Node.js 22 or newer, Git, Claude Code.</p>
     <div class="term">
       <div class="term-bar">
         <span>Terminal</span>
@@ -179,7 +236,7 @@
 <span class="p">&gt;</span> npm install
 <span class="p">&gt;</span> npm start</code></pre>
     </div>
-    <p class="after">Nothing is compiled on your machine. The <a href="https://github.com/anessbelbati/lowlit#readme">README</a> has the rest: the usage limits, the browser, the keys.</p>
+    <p class="after">Nothing is compiled on your machine. The limit bars need one entry in your Claude Code settings, and the Browser is off until you switch it on: the <a href="https://github.com/anessbelbati/lowlit#readme">README</a> has both.</p>
   </section>
 </main>
 
@@ -193,8 +250,12 @@
     <a href="https://github.com/anessbelbati/lowlit/issues">Issues</a>
     <a href="https://github.com/anessbelbati/lowlit/blob/main/LICENSE">MIT licence</a>
   </nav>
-  <p>Lowlit is not made by, or affiliated with, Anthropic. Claude and Claude Code are trademarks of Anthropic.</p>
+  <p>Every picture is from Lowlit's own test window, with made-up chats. Lowlit is not made by, or affiliated with, Anthropic. Claude and Claude Code are trademarks of Anthropic.</p>
 </footer>
+
+<dialog class="zoom" id="zoom" aria-label="The picture, at its full size">
+  <img alt="" width="1600" height="1000">
+</dialog>
 
 </body>
 </html>

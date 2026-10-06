@@ -124,7 +124,7 @@ def main():
     page = light().convert('RGBA')
 
     # the picture of the app: obsidian over the light, running off the right and the bottom
-    shot = Image.open(ROOT / 'docs' / 'chats.png').convert('RGB')
+    shot = Image.open(ROOT / 'docs' / 'ws-all.png').convert('RGB')
     shot = shot.resize((SHOT_W, round(shot.height * SHOT_W / shot.width)), Image.LANCZOS)
     radius = 16
     shade = Image.new('L', (W, H), 0)
@@ -153,11 +153,11 @@ def main():
     head = font('inter-latin.woff2', 66, 600)
     y = 196
     ends = []
-    for row in ('A quiet desk for', 'your Claude Code', 'chats.'):
+    for row in ('Every Claude', 'Code chat in', 'one window.'):
         ends.append(write(d, (LEFT - 3, y), row, head, TEXT, -0.047))
         y += 69
     mono = font('geist-mono.woff', 21, 500)
-    ends.append(write(d, (LEFT, y + 30), 'Free · open source · for Windows', mono, GREY))
+    ends.append(write(d, (LEFT, y + 30), 'Windows · free · MIT', mono, GREY))
     small = font('geist-mono.woff', 19, 400)
     write(d, (LEFT, H - 78), 'github.com/anessbelbati/lowlit', small, DIM)
     if max(ends) > SHOT_AT[0] - 28:

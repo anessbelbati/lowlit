@@ -6,56 +6,80 @@
 </p>
 
 <p align="center">
-  <b>A quiet desk for your Claude Code chats.</b><br>
-  Every chat in one window, each one a real terminal running the real <code>claude</code>, with the numbers beside them.
+  <b>Every Claude Code chat in one window.</b><br>
+  Real terminals running the real <code>claude</code>. Grouped into workspaces. The ones that need you on top.
 </p>
 
 <p align="center">Windows 10 and 11 &nbsp;·&nbsp; free &nbsp;·&nbsp; MIT &nbsp;·&nbsp; runs on your computer only</p>
 
-![Lowlit with four Claude Code chats side by side: one waits for a permission, one compares prices with three subagents, one compacts, one is finished. On the left, every chat sorted by who needs you, and the account's usage limits.](docs/chats.png)
+![Lowlit, one workspace after the other: every chat, then Shop, Work, 3D and App with only their own chats in the list and on screen, then Shop and Work at once.](docs/workspaces.gif)
 
-## Why
+Each chat is a terminal running the `claude` you already have: your settings, hooks, MCP servers, plugins and slash commands work unchanged. Lowlit reads the files Claude Code writes on your disk and shows what they say.
 
-Run five Claude Code chats at once and the chats stop being the hard part. The hard part is knowing which one waits for you, how much of your plan is left, and what each of them has running on your machine. Lowlit puts every chat in one window and answers those three at a glance.
+## Workspaces
 
-It does not wrap or replace Claude Code. Each chat is a terminal running the `claude` program you already have, so your settings, hooks, MCP servers, plugins and slash commands work as they always do. Lowlit reads the files Claude Code writes on your disk and shows what they say.
+A workspace is a set of folders, with a colour. A chat goes where its folder is.
 
-## What it does
+- Click a tab: only that workspace's chats are left, in the list and on screen.
+- `Ctrl`-click a second tab: both at once, each in its own block.
+- A tab counts the chats that wait in it.
+- `Ctrl Shift 1` is every chat, `Ctrl Shift 2` to `9` the workspaces.
 
-**Every chat in one window.** One, two or four chats side by side, or all of them as cards. Workspaces group them by folder. One search box (`Ctrl Shift P`) finds any chat, command or thing you typed.
-
-**Which one needs you.** The list sorts your chats into Needs you, Finished, Working and Idle, with how long each has waited. A permission question or a usage limit puts a chat on top. `Ctrl Shift N` goes to the next one that waits.
-
-**The numbers.** Beside each chat: what it cost at API list prices, its tokens, how full its context is, and the RAM and processor that it and everything it started take. For your account: the 5-hour and weekly limits, where they are heading at your pace, and when they reset.
-
-**A browser each chat can drive.** Lowlit offers Claude Code a browser of its own. A chat opens pages, reads them, clicks, types, takes pictures, looks at a page as a phone, a tablet and a laptop in one call, and records a GIF of what it did. You watch beside the chat and can take a page over. Sites on an ask-first list (your mail, payments, private messages, password managers) wait for your yes.
-
-**A viewer for what the chats make.** Pictures, videos and sounds open beside the chat that made them: two takes side by side, a wipe to compare them, a video the chat can play, pause and step through.
-
-**Chats that outlive the window.** The terminals are held by a small keeper process. Restart Lowlit, or let it crash, and your chats keep running and are there when it opens again.
-
-**And the rest.** A Dashboard (what runs now, each session's programs and ports, the latest tool calls, today / 7 days / 30 days). History over every past conversation on the machine, with "Resume here". A Servers page to pin, start and stop the dev servers of your projects. The Nest, one big chat kept apart for a folder of your own, a key away from any program. A floating card over your other programs. Gaming mode, which closes every chat and dev server and brings them back next time.
+## Also in the window
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/dashboard.png" alt="The Dashboard: one bar per chat, what each session runs besides the agent with its RAM and processor, and the latest tool calls"></td>
-    <td width="50%"><img src="docs/glance.png" alt="Every chat at a glance: nine cards, each with its state, how long it has waited, its folder and its last words"></td>
+    <td width="50%"><a href="site/img/panel.webp"><img src="site/img/panel-tile.webp" alt="The panel beside a chat: what you last asked, its latest words, what happened while you were away, and this turn's tool calls"></a></td>
+    <td width="50%"><a href="site/img/cards.webp"><img src="site/img/cards-tile.webp" alt="Every chat as a card, under its workspace"></a></td>
   </tr>
   <tr>
-    <td align="center"><sub>The Dashboard: what runs now, and what each session holds on your machine.</sub></td>
-    <td align="center"><sub>Every chat at a glance.</sub></td>
+    <td><b>Panel.</b> Beside a chat: what you asked, this turn's tool calls, its subagents, what it changed.</td>
+    <td><b>Cards.</b> Every chat as a card, by workspace.</td>
   </tr>
   <tr>
-    <td><img src="docs/browser.png" alt="A chat on the left and, beside it, the page it opened in Lowlit's browser"></td>
-    <td><img src="docs/viewer.png" alt="A chat on the left and, beside it, two pictures it made, shown side by side in the Viewer"></td>
+    <td><a href="site/img/dashboard-now.webp"><img src="site/img/dashboard-now-tile.webp" alt="The Dashboard: one bar per chat by workspace, then each session with what it runs, its RAM and its processor"></a></td>
+    <td><a href="site/img/dashboard-today.webp"><img src="site/img/dashboard-today-tile.webp" alt="What today cost at list prices, then day by day and hour by hour"></a></td>
   </tr>
   <tr>
-    <td align="center"><sub>The Browser: the page a chat works in, beside the chat.</sub></td>
-    <td align="center"><sub>The Viewer: two takes of a picture, side by side.</sub></td>
+    <td><b>Dashboard.</b> What each session runs besides the agent: dev servers, MCP servers, ports, RAM, CPU.</td>
+    <td><b>Cost.</b> What today cost at API list prices: by day, by hour, by chat.</td>
+  </tr>
+  <tr>
+    <td><a href="site/img/chat-browser.webp"><img src="site/img/chat-browser-tile.webp" alt="A chat and, beside it, the web page it opened in Lowlit's browser"></a></td>
+    <td><a href="site/img/chat-viewer.webp"><img src="site/img/chat-viewer-tile.webp" alt="A chat and, beside it, two pictures it made, side by side in the Viewer"></a></td>
+  </tr>
+  <tr>
+    <td><b>Browser.</b> A browser each chat can drive: open, read, click, type, screenshot. Watch, or take over.</td>
+    <td><b>Viewer.</b> Pictures, video and sound open beside the chat that made them. Two takes side by side.</td>
+  </tr>
+  <tr>
+    <td><a href="site/img/servers.webp"><img src="site/img/servers-tile.webp" alt="The Servers page: five pinned dev servers with their ports, each with Start, Stop or Restart"></a></td>
+    <td><a href="site/img/history.webp"><img src="site/img/history-tile.webp" alt="History: past conversations by date, one of them open with a Resume here button"></a></td>
+  </tr>
+  <tr>
+    <td><b>Servers.</b> Your dev servers, pinned: start, stop, restart, read what one printed.</td>
+    <td><b>History.</b> Every past conversation on the machine. Resume here.</td>
+  </tr>
+  <tr>
+    <td><a href="site/img/search.webp"><img src="site/img/search-tile.webp" alt="The search box over the window, listing the chats of this window and of other terminals"></a></td>
+    <td><a href="site/img/closing.webp"><img src="site/img/closing-tile.webp" alt="The question a close asks: keep them for next time, start fresh, keep running by the clock, or gaming mode"></a></td>
+  </tr>
+  <tr>
+    <td><b>Search.</b> <code>Ctrl Shift P</code>: jump to a chat, find something you typed, run a command.</td>
+    <td><b>Closing.</b> With chats open, it asks: keep them, start fresh, keep running by the clock, or gaming mode.</td>
   </tr>
 </table>
 
-Every picture here was taken from Lowlit's own test window, with made-up chats.
+Click a picture for the whole window. Every picture here is from Lowlit's own test window, with made-up chats.
+
+And:
+
+- **Which one needs you.** The list sorts your chats into Needs you, Finished, Working and Idle, with how long each has waited. `Ctrl Shift N` goes to the next one that waits.
+- **The numbers.** Per chat: cost at API list prices, tokens, how full its context is, the RAM and processor of everything it started. Per account: the 5-hour and weekly limits, where they are heading, when they reset.
+- **Chats that outlive the window.** A keeper process holds the terminals. Restart Lowlit, or let it crash: your chats run on.
+- **A floating card** over your other programs: the chat in front, its plan, who needs you (`Ctrl Shift F`).
+- **The Nest.** One big chat kept apart for a folder of your own, a key away from any program.
+- **Gaming mode.** Closes every chat and dev server, and brings them back next time.
 
 ## Install
 
@@ -111,7 +135,7 @@ Lowlit reads, on your computer:
 
 It never:
 
-- opens the file that holds your login (`~/.claude/.credentials.json`), or sees or stores a key;
+- opens the file that holds your login (`~/.claude/.credentials.json`), or sees or stores the key in it;
 - talks to Anthropic, logs in, logs out or switches accounts;
 - drives Claude without a terminal, or changes Claude Code itself. A chat is the `claude` program in a terminal. Lowlit types into one only when you click a button that says so (Commit, Push, Compact now, Continue all), never by itself.
 
@@ -123,9 +147,9 @@ Settings > What it reads says the same inside the app.
 
 Anthropic's own desktop app runs several Claude Code sessions side by side, with its own interface. If that is what you want, use it: it is good.
 
-Lowlit is for people who live in the terminal `claude` and want to keep it: the same program, with your own configuration, many at once, and the things the terminal cannot show you around it. It is the public copy of the desk its author works at every day.
+Lowlit is for people who live in the terminal `claude` and want to keep it: the same program, your own configuration, many at once. It is the public copy of the desk its author works at every day.
 
-It is early. It runs on Windows only for now. Expect rough edges, and tell me about them.
+It is early, and Windows only for now. Expect rough edges, and tell me about them.
 
 ## Keys
 
@@ -135,9 +159,11 @@ It is early. It runs on Windows only for now. Expect rough edges, and tell me ab
 | `Ctrl Shift T` / `W` | New chat / close the chat that has the keyboard |
 | `Ctrl Shift N` | Next chat that needs you |
 | `Ctrl 1 … 9` | A chat by its number in the list |
+| `Ctrl Shift 1 … 9` | Every chat, then a workspace by its tab |
 | `Ctrl Shift Enter` | One chat big, or back to side by side |
 | `Ctrl Shift B` / `M` | The Browser / the Viewer |
 | `Ctrl Shift U` / `H` | Dashboard / History |
+| `Ctrl Shift F` | The floating card |
 | `Ctrl Shift Space` | The Nest, from any program |
 | `Ctrl ,` | Settings, with every key |
 

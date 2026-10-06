@@ -411,6 +411,8 @@ body.no-side #side-grip { display: none; }
 .sidebar .ws-block > .group-head { height: 26px; }
 .sidebar .ws-block > .group-head .g-title { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .sidebar .ws-block > .group-head .g-n, .sidebar .ws-wait { flex: none; }
+/* a block's count of waits wears the tab's pill, in its own head's row and at its end: not in the tab's corner */
+.sidebar .ws-wait { position: static; margin-left: auto; }
 .sidebar .ws-block > .group-rows > .group-inner { gap: 0; padding-bottom: 0; }
 .sidebar .ws-block .group .group-head { height: 22px; }
 .sidebar .ws-block .group-inner { padding-bottom: 0; }

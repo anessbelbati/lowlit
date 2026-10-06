@@ -1,5 +1,9 @@
 'use strict';
-// Lowlit's site: the Copy button, and the light.
+// Lowlit's site: the Copy button, the workspace tabs over the first picture, a screen shown at its full size, and the
+// light.
+// The tabs are the app's own: a press shows the window with that workspace in front. Left alone they go round by
+// themselves, slowly, and only while they are on the screen; a press, a key or a pointer resting on them ends that,
+// and whoever asked for less motion never gets it.
 // The light is the app's own (app/noir.js) in one pass: a lamp just past the top left corner, its rays turning slowly
 // through a drifting fog, drawn in fine dots by ordered dithering. Silver on black, never a colour.
 // What it costs: at most 24 frames a second, and none while it is off the screen or the tab is hidden; one still
@@ -16,6 +20,87 @@
       }
       setTimeout(() => { b.textContent = 'Copy'; }, 1800);
     });
+  }
+
+  const calm = matchMedia('(prefers-reduced-motion: reduce)');
+
+  const stage = document.getElementById('stage');
+  if (stage) {
+    const TURN_MS = 4200;
+    const tabs = [...stage.querySelectorAll('[role="tab"]')];
+    const panes = tabs.map((t) => document.getElementById(t.getAttribute('aria-controls')));
+    let at = 0;
+    let round = true;       // going round by itself: over for good at the first press or key
+    let inSight = false;
+    let resting = false;    // the pointer is on the stage, or the keyboard is in it
+    let turn = 0;
+    const show = (i) => {
+      at = i;
+      tabs.forEach((t, k) => {
+        const on = k === i;
+        t.classList.toggle('on', on);
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+        panes[k].classList.toggle('on', on);
+        panes[k].setAttribute('aria-hidden', String(!on));
+      });
+    };
+    const pace = () => {
+      clearInterval(turn);
+      turn = 0;
+      if (round && inSight && !resting && !document.hidden && !calm.matches) turn = setInterval(() => show((at + 1) % tabs.length), TURN_MS);
+    };
+    const mine = () => { round = false; pace(); };
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => { mine(); show(i); });
+      t.addEventListener('keydown', (e) => {
+        const to = e.key === 'ArrowRight' ? (i + 1) % tabs.length : e.key === 'ArrowLeft' ? (i + tabs.length - 1) % tabs.length
+          : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
+        if (to < 0) return;
+        e.preventDefault();
+        mine();
+        show(to);
+        tabs[to].focus();
+      });
+    });
+    for (const [on, off] of [['pointerenter', 'pointerleave'], ['focusin', 'focusout']]) {
+      stage.addEventListener(on, () => { resting = true; pace(); });
+      stage.addEventListener(off, () => { resting = false; pace(); });
+    }
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver((entries) => { inSight = entries[entries.length - 1].isIntersecting; pace(); }, { threshold: 0.2 }).observe(stage);
+    } else inSight = true;
+    document.addEventListener('visibilitychange', pace);
+    calm.addEventListener('change', pace);
+    show(0);
+    pace();
+  }
+
+  // A screen of the grid at its full size. It is fetched when the pointer comes onto its tile, and shown once it is
+  // there: never an empty frame. On a phone the link opens the picture itself, to pinch.
+  const zoom = document.getElementById('zoom');
+  if (zoom && typeof zoom.showModal === 'function') {
+    const big = zoom.querySelector('img');
+    const fetched = new Set();
+    for (const tile of document.querySelectorAll('a.tile')) {
+      tile.addEventListener('pointerenter', () => {
+        if (fetched.has(tile.href) || innerWidth < 700) return;
+        fetched.add(tile.href);
+        new Image().src = tile.href;
+      });
+      tile.addEventListener('click', (e) => {
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0 || innerWidth < 700) return;
+        e.preventDefault();
+        const small = tile.querySelector('img');
+        big.alt = small ? small.alt : '';
+        big.onload = () => { if (!zoom.open) zoom.showModal(); };
+        // a picture that does not come is still one link away
+        big.onerror = () => { location.href = tile.href; };
+        big.src = tile.href;
+      });
+    }
+    zoom.addEventListener('click', () => zoom.close());
+    zoom.addEventListener('close', () => { big.onload = null; big.onerror = null; big.removeAttribute('src'); });
   }
 
   const host = document.querySelector('.light');

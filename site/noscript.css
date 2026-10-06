@@ -1,0 +1,5 @@
+/* Without scripts the tabs choose nothing: every workspace's picture stands on the page, one under the other. */
+.tabs { display: none; }
+.panes { display: block; margin-top: 0; }
+.pane { opacity: 1; visibility: visible; }
+.pane + .pane { margin-top: 40px; }

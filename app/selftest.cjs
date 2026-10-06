@@ -18,8 +18,10 @@
 //                              the run makes for itself. No agent is started. (Run it with DESK_SELFTEST_SKIP=states.)
 //   DESK_SELFTEST_ONLY=picture four plain consoles dressed as made-up chats, for pictures of the window that hold
 //                              nothing of the person's: invented names, invented numbers, invented terminal text.
-//   DESK_SELFTEST_ONLY=shots   the pictures of the picture area meant for a README or a website, plus one chat with its
-//                              Browser on a made-up page and its Viewer on two made-up pictures. Run it with -Dom.
+//   DESK_SELFTEST_ONLY=shots   the pictures meant for a README or a website: eight plain consoles dressed as made-up chats in
+//                              four workspaces, the panel, the cards, the Dashboard and what its day cost, a chat with its
+//                              Browser on a made-up page and its Viewer on two made-up pictures, made-up servers, History,
+//                              the search box, the question a close asks and the floating card. One account. Run it with -Dom.
 //   DESK_SELFTEST_ONLY=leave   two plain consoles are opened and one is named; the app is then closed the way the
 //                              person closes it, answering "keep them". No agent is started.
 //   DESK_SELFTEST_ONLY=jev     Jev with a made-up OpenRouter (nothing leaves the machine), over made-up sessions:
@@ -635,6 +637,10 @@ function pageDress(id, kind) {
     },
     refactor: {
       top: [
+        asked('The rate limiter is one file of 640 lines. What is in it?'), gap,
+        tool('Search', 'pattern: "^export ", path: "src/api/limiter.ts"'), out('Found 11 lines'), gap,
+        tool('Bash', 'npm test -- limiter'), out('Tests: 118 passed, 118 total', 'Time:  9.6 s'), gap,
+        said('Eleven exports, and the tests cover every one of them: 118 pass before anything is touched.'), gap,
         asked('Split the rate limiter into modules. Keep every test green on the way.'), gap,
         tool('Read', 'src/api/limiter.ts'), out('Read 640 lines'), gap,
         said('The file does three jobs: counting, storing and answering. One module each.'), gap,
@@ -650,6 +656,11 @@ function pageDress(id, kind) {
     },
     landing: {
       top: [
+        asked('What does the landing page say today?'), gap,
+        tool('Search', 'pattern: "export default", path: "src/landing"'), out('Found 3 files'), gap,
+        tool('Read', 'src/landing/features.tsx'), out('Read 121 lines'), gap,
+        tool('Read', 'src/landing/pricing.tsx'), out('Read 88 lines'), gap,
+        said('Three sections: hero, features and pricing. The hero talks about the company, the features are a list of adjectives, and the third tier of the pricing is behind a link.'), gap,
         asked('Rewrite the three sections of the landing page so each says what the product does.'), gap,
         tool('Read', 'src/landing/hero.tsx'), out('Read 74 lines'), gap,
         tool('Update', 'src/landing/hero.tsx'), out('Updated src/landing/hero.tsx with 14 additions and 9 removals'), gap,
@@ -663,6 +674,94 @@ function pageDress(id, kind) {
       ],
       foot: [...promptBox, mode('')],
       prompt: 1,
+    },
+    lighting: {
+      top: [
+        asked('Open the kitchen scene and tell me how it is lit.'), gap,
+        tool('Bash', 'blender -b kitchen.blend -P scripts/list_lights.py'), out('Key 1200 W · Fill 300 W · Window 4.0'), gap,
+        tool('Read', 'scenes/lights.md'), out('Read 22 lines'), gap,
+        said('Three lights: a key over the counter, a fill by the door and the window. The key carries the picture, and the last render clips on the counter top.'), gap,
+        asked('The key light is too hot on the counter. Lower it and render a test frame.'), gap,
+        tool('Read', 'scenes/kitchen.py'), out('Read 318 lines'), gap,
+        said('The key light is at 1200 W, two metres from the counter. I will bring it down to 800 and warm it a little.'), gap,
+        tool('Update', 'scenes/kitchen.py'), out('Updated scenes/kitchen.py with 2 additions and 1 removal'),
+        diff(41, '-', 'key.energy = 1200'),
+        diff(41, '+', 'key.energy = 800'),
+        diff(42, '+', 'key.color = (1.0, 0.94, 0.86)'), gap,
+        tool('Bash', 'blender -b kitchen.blend -P scenes/kitchen.py -f 12', true), out('Fra:12 | Sample 96/256 | Remaining 01:42', '+38 lines'), gap,
+        said('Frame 12 is rendering at half size. The counter reads two stops lower already.'), gap,
+        busy('Rendering…', '(4m 10s · ↓ 18k tokens · esc to interrupt)'),
+      ],
+      foot: [...promptBox, mode('')],
+      prompt: 1,
+    },
+    turntable: {
+      top: [
+        asked('How long does one frame of the kitchen take to render?'), gap,
+        tool('Bash', 'blender -b kitchen.blend -f 1 -- --samples 64'), out('Fra:1 | Time: 00:38.41 | Saved: out/0001.png'), gap,
+        said('About 38 seconds a frame at 64 samples. A full turn of 72 frames comes to about 46 minutes.'), gap,
+        asked('Fine, keep 64 samples. Where is the camera?'), gap,
+        tool('Read', 'scenes/kitchen.py'), out('Read 318 lines'), gap,
+        said('It stands still, facing the counter. For a turntable it has to go round it: a circle at eye height, five degrees a frame.'), gap,
+        asked('Write a script that exports a turntable of the kitchen: 72 frames, one every five degrees.'), gap,
+        tool('Read', 'scripts/export.py'), out('Read 96 lines'), gap,
+        tool('Write', 'scripts/turntable.py'), out('Wrote 64 lines to scripts/turntable.py'), gap,
+        tool('Bash', 'blender -b kitchen.blend -P scripts/turntable.py -- --dry-run'), out('72 frames planned, 0 rendered', 'out/turntable/0001.png to 0072.png'), gap,
+        said('The script exports 72 frames, one every five degrees. Run it without --dry-run to render them.'), gap,
+        plain('Frames     72, five degrees apart'),
+        plain('Camera     orbits the counter at eye height'),
+        plain('Output     out/turntable/, one PNG a frame'),
+      ],
+      foot: [...promptBox, mode('')],
+      prompt: 1,
+    },
+    onboarding: {
+      top: [
+        asked('How many people finish the onboarding?'), gap,
+        tool('Read', 'docs/funnel.md'), out('Read 37 lines'), gap,
+        said('Of 100 who start, 41 reach the last screen. Most of the others leave on screens two and four.'), gap,
+        tool('Search', 'pattern: "onSkip", path: "src/onboarding"'), out('Found 5 lines'), gap,
+        said('Every screen has the skip button, and it jumps straight to the end. That part works.'), gap,
+        asked('The onboarding has five screens. Cut it to three and keep the skip button.'), gap,
+        tool('Read', 'src/onboarding/Flow.tsx'), out('Read 186 lines'), gap,
+        said('Screens two and four repeat what the first one says. I will fold them into the welcome screen.'), gap,
+        tool('Update', 'src/onboarding/Flow.tsx'), out('Updated src/onboarding/Flow.tsx with 21 additions and 64 removals'), gap,
+        tool('Update', 'src/onboarding/Welcome.tsx'), out('Updated src/onboarding/Welcome.tsx with 12 additions and 3 removals'), gap,
+        tool('Bash', 'npx expo start --ios'), out('Metro waiting on exp://127.0.0.1:8081', 'iOS Bundled 1482ms'), gap,
+        said('Three screens now: welcome, name, done. Checking the skip button on each.'), gap,
+        busy('Checking…', '(7m 12s · ↓ 64k tokens · esc to interrupt)'),
+      ],
+      foot: [...promptBox, mode('')],
+      prompt: 1,
+    },
+    push: {
+      top: [
+        asked('The settings screen crashes when the name is empty.'), gap,
+        tool('Read', 'src/settings/Profile.tsx'), out('Read 142 lines'), gap,
+        said('The name is trimmed and its first letter is read. An empty name has none.'), gap,
+        tool('Update', 'src/settings/Profile.tsx'), out('Updated src/settings/Profile.tsx with 2 additions and 1 removal'),
+        diff(58, '-', 'const initial = name.trim()[0].toUpperCase();'),
+        diff(58, '+', 'const shown = name.trim();'),
+        diff(59, '+', "const initial = shown ? shown[0].toUpperCase() : '?';"), gap,
+        tool('Bash', 'npm test -- settings'), out('Tests: 23 passed, 23 total', 'Time:  2.7 s'), gap,
+        said('Fixed. An empty name shows a question mark where the initial goes, and all 23 tests pass.'), gap,
+        asked('Add push notifications for new messages.'), gap,
+        tool('Read', 'app.json'), out('Read 41 lines'), gap,
+        tool('Search', 'pattern: "notification", path: "src"'), out('Found 3 lines'), gap,
+        said('Nothing sends them yet. There are two ways to do it, and they differ in what you have to look after.'),
+      ],
+      foot: [
+        rule('╭', '╮'),
+        boxed([C.hi, 'Which push service?']),
+        boxed(),
+        boxed([C.ok, '❯ 1. Expo push'], [C.dim, '  no server keys to look after']),
+        boxed(['', '  2. Firebase Cloud Messaging'], [C.dim, '  your own keys, more control']),
+        boxed(['', '  3. Type something else']),
+        boxed(),
+        boxed([C.dim, 'Enter to select · ↑/↓ to navigate · Esc to cancel']),
+        rule('╰', '╯'),
+      ],
+      prompt: -1,
     },
   };
   const screen = screens[kind] || screens.landing;
@@ -1230,9 +1329,10 @@ module.exports = async function selfTest({ app, win, dir, engine, chats, watch, 
    * What the watcher's helper would report for the made-up sessions: one with a dev server up, a command still
    * running and MCP servers, the others with less. The background record (no program) is not measured.
    * chat: a chat of this window that the busiest session runs in, and so has a total of its own.
+   * more: further made-up sessions, built with the same two helpers (the pictures for a website show more of them).
    */
   const MB = 1048576;
-  const madeUpRes = (chat) => {
+  const madeUpRes = (chat, more) => {
     const prog = (kind, label, mb, cpu, n = 1, ports = []) => ({ kind, label, mem: mb * MB, cpu, n, ports, started: madeAt - 3600e3 });
     const sess = (ownMb, ownCpu, items = []) => ({
       mem: ownMb * MB + items.reduce((a, x) => a + x.mem, 0), ws: 0, cpu: Math.round((ownCpu + items.reduce((a, x) => a + x.cpu, 0)) * 10) / 10,
@@ -1248,6 +1348,7 @@ module.exports = async function selfTest({ app, win, dir, engine, chats, watch, 
       's-finish': sess(276, 0.4),
       's-idle': sess(153, 0, [prog('mcp', 'mcp_server', 0, 0, 3)]),
       'codex:x': sess(188, 1.2),
+      ...(more ? more(sess, prog) : {}),
     };
     const all = Object.values(sessions);
     return {
@@ -4188,9 +4289,12 @@ module.exports = async function selfTest({ app, win, dir, engine, chats, watch, 
     check('a picture of two workspaces shown at once, each a block of its own', blocks === 2, `${blocks} blocks`);
   };
 
-  // ---- pictures for a README and a website, as people will see the window: the made-up afternoon of the picture area,
-  // ---- then one of its chats with its Browser beside it on a made-up landing page, and with the Viewer showing two
-  // ---- made-up pictures it made. Nothing of the person's: invented names, numbers, pages and pictures. Run it with -Dom.
+  // ---- pictures for a README and a website, as people will see the window: a made-up afternoon in four workspaces,
+  // ---- each with a colour of its own and two chats of this window (eight plain consoles, drawn over), then the panel
+  // ---- beside a chat, every chat as a card, the Dashboard and what its day cost, a chat with its Browser on a made-up
+  // ---- landing page and with the Viewer on two made-up pictures, History, the search box, the floating card, the
+  // ---- Servers page and the question a close asks. Nothing of the person's: invented names, numbers, pages, pictures,
+  // ---- branches and servers, a made-up day that adds up, and one account. Run it with -Dom.
   const shotsPhase = async () => {
     check('the window loads for the pictures', Boolean(await until(() => exec('typeof Desk === "object" && Desk !== null && typeof Viewer === "object" && typeof Browser === "object"'), 15000)));
     check('the watcher delivers its first picture of the machine', Boolean(await until(async () => watch.latest().at > 0 && watch.latest(), 20000)));
@@ -4199,34 +4303,127 @@ module.exports = async function selfTest({ app, win, dir, engine, chats, watch, 
     win.setContentSize(1600, 1000);
     await wait(400);
     await exec('Desk.setTiles(4)');
-    const ids = [];
-    for (const name of ['shop', 'pricing', 'api', 'landing']) {
-      const cwd = path.join(dir, 'work', name);
-      fs.mkdirSync(cwd, { recursive: true });
-      const chat = await inPage(pageNew, { cwd, starter: 'shell', restore: true });
+    // a console each: what is drawn over it, and the made-up folder it works in
+    const CONSOLES = [['checkout', 'shop'], ['pricing', 'pricing'], ['refactor', 'api'], ['landing', 'landing'],
+      ['lighting', 'renders'], ['turntable', 'renders'], ['onboarding', 'mobile'], ['push', 'mobile']];
+    const at = (name) => path.join(dir, 'work', name);
+    const kindOf = {};
+    const chatOf = {};
+    for (const [kind, name] of CONSOLES) {
+      fs.mkdirSync(at(name), { recursive: true });
+      const chat = await inPage(pageNew, { cwd: at(name), starter: 'shell', restore: true });
       if (!chat || !chat.id) throw new Error('a console did not open');
-      ids.push(chat.id);
+      kindOf[chat.id] = kind;
+      chatOf[kind] = chat.id;
       await until(promptBack, 30000);
       await type("function prompt { ' ' }; cls\r");
       await wait(600);
     }
-    const [checkout, pricing, refactor, landing] = ids;
-    const kindOf = { [checkout]: 'checkout', [pricing]: 'pricing', [refactor]: 'refactor', [landing]: 'landing' };
+    const { checkout, pricing, refactor, landing, lighting, turntable, onboarding, push: notify } = chatOf;
     await exec('Terms.write = () => {}; true');
     watch.post({ type: 'pace', ms: 600000 });
     await wait(900);
     const afternoon = new Date();
     afternoon.setHours(15, 40, 0, 0);
-    madeAt = await inPage(pageClock, afternoon.getTime() - Date.now());
-    await installFakes();
-    await showUsage('today');
-    const res = madeUpRes(pricing);
-    const chatRes = (key, extra, cpu) => ({ mem: res.sessions[key].mem + extra * MB, cpu, n: res.sessions[key].n + 2, ports: [] });
-    Object.assign(res.chats, { [checkout]: chatRes('s-permission', 64, 0.4), [refactor]: chatRes('s-compact', 66, 3.3), [landing]: chatRes('s-finish', 61, 0.5) });
+    const ahead = afternoon.getTime() - Date.now();
+    madeAt = await inPage(pageClock, ahead);
+    // the conversation History opens first is filed under a folder that does not exist, so that no test resumes it:
+    // in a picture it is filed under the shop's
+    const kept = madeUpHistory();
+    for (const past of kept.list) past.cwd = past.cwd.replace('Z:\\nowhere', 'D:\\work');
+    await inPage(pageFakes, madeUpPages(), JSON.stringify(kept));
+    // The day these pictures show adds up: lighter than the made-up one the tests share, so that what was spent today
+    // is what the chats in the list say they cost and a little more; each of the busiest chats costs on the Dashboard
+    // what its row says, hour by hour and in the table; the folders are these pictures' own. All of it under the one
+    // account, with models and tools anyone has, counted from a made-up number of files.
+    const SPENT = 112;
+    const BUSIEST = [['s-agents', 'Pricing research', 'pricing', 41.8], ['s-permission', 'Checkout page rebuild', 'shop', 18.2], ['s-onboard', 'Onboarding flow', 'mobile', 14.9],
+      ['s-light', 'Kitchen scene lighting', 'renders', 9.6], ['s-words', 'Invoice export bug', 'shop', 6.4], ['s-idle', 'Old notes', 'shop', 3.1]];
+    const FOLDERS = [['pricing', 41.8], ['shop', 31.9], ['mobile', 16.7], ['renders', 11.8], ['api', 6.1], ['landing', 3.7]];
+    const whole = madeUpUsage('today');
+    const less = SPENT / whole.total.usd;
+    const SAME = ['at', 'limits', 'active', 'toolKinds', 'reading', 'recorded', 'lim'];
+    const lighter = (v, money) => (typeof v === 'number' ? (money ? Math.round(v * less * 100) / 100 : Math.round(v * less))
+      : Array.isArray(v) ? v.map((x) => lighter(x, money))
+        : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, SAME.includes(k) ? x : lighter(x, money || /usd|spent/i.test(k))])) : v);
+    const used = lighter(whole, false);
+    const sum = used.total;
+    const shareOf = (usd) => Object.fromEntries(['in', 'out', 'cacheWrite', 'cacheRead', 'replies', 'work', 'asked'].map((k) => [k, Math.round((sum[k] * usd) / sum.usd)]));
+    used.who = [{ key: 'aaaa1111', usd: sum.usd, ...shareOf(sum.usd) }];
+    for (const d of used.days) { d.who = { aaaa1111: d.out }; d.whoUsd = { aaaa1111: d.usd }; }
+    used.chats = BUSIEST.map(([key, title, name, usd]) => ({ key, title, name, project: 'p', cwd: `D:\\work\\${name}`, usd, ...shareOf(usd) }));
+    const spread = (list, total) => { const had = list.reduce((a, b) => a + b, 0) || 1; return list.map((x) => (x * total) / had); };
+    // five of them hour by hour: with the hours' own line under them they end where the picture of the day ends
+    used.lanes = used.lanes.slice(0, 5).map((lane, i) => {
+      const c = used.chats[i];
+      return { key: c.key, title: c.title, name: c.name, work: spread(lane.work, c.work).map(Math.round), out: spread(lane.out, c.out).map(Math.round), usd: spread(lane.usd, c.usd), sum: c.work, tokens: c.out, spent: c.usd };
+    });
+    used.projects = FOLDERS.map(([name, usd]) => ({ key: name, name, usd, ...shareOf(usd) }));
+    used.models = [['claude-opus-5-5', 0.86], ['claude-sonnet-5-5', 0.14]].map(([key, part]) => ({ key, name: key, usd: Math.round(sum.usd * part * 100) / 100, ...shareOf(sum.usd * part) }));
+    used.unpriced = [];
+    sum.unpriced = 0;
+    used.tools = used.tools.map((x) => (x.name === 'ops: capture' ? { ...x, name: 'playwright: navigate' } : x));
+    used.active = { chats: 13, projects: FOLDERS.length };
+    used.reading = { files: 412, done: 412, bytes: 2.6e9, read: 2.6e9, counting: true, today: true };
+    await exec(`Desk.state.frozen = true; Desk.state.usage = ${JSON.stringify(used)}; paint()`);
+    const res = madeUpRes(pricing, (sess, prog) => ({
+      's-light': sess(498, 3.2, [prog('command', 'blender', 1100, 6, 2)]),
+      's-turn': sess(212, 0),
+      's-onboard': sess(471, 5.1, [prog('server', 'expo', 302, 2.4, 3, [8081]), prog('mcp', 'mcp_server', 46, 0, 3)]),
+      's-push': sess(344, 0.1, [prog('mcp', 'mcp_server', 46, 0, 3)]),
+    }));
+    res.servers.push({ port: 8081, key: 's-onboard', label: 'expo', kind: 'server' });
+    const chatRes = (key, extra, cpu) => ({ mem: res.sessions[key].mem + extra * MB, cpu, n: res.sessions[key].n + 2, ports: res.sessions[key].ports });
+    Object.assign(res.chats, { [checkout]: chatRes('s-permission', 64, 0.4), [refactor]: chatRes('s-compact', 66, 3.3), [landing]: chatRes('s-finish', 61, 0.5),
+      [lighting]: chatRes('s-light', 58, 9.6), [turntable]: chatRes('s-turn', 55, 0), [onboarding]: chatRes('s-onboard', 63, 7.9), [notify]: chatRes('s-push', 57, 0.2) });
     await exec(`Desk.state.res = ${JSON.stringify(res)}`);
     await view(pricing);
-    const tie = { 's-permission': checkout, 's-agents': pricing, 's-compact': refactor, 's-finish': landing };
-    const rowsFor = (flip) => madeUpRows(flip).map((r) => (tie[r.key] ? { ...r, chat: tie[r.key] } : r));
+    const tie = { 's-permission': checkout, 's-agents': pricing, 's-compact': refactor, 's-finish': landing, 's-light': lighting, 's-turn': turntable, 's-onboard': onboarding, 's-push': notify };
+    const RENDERS = 'D:\\work\\renders';
+    const MOBILE = 'D:\\work\\mobile';
+    // four more made-up sessions: the two of a 3D folder and the two of a phone app
+    const further = () => [
+      row({ key: 's-light', title: 'Kitchen scene lighting', cwd: RENDERS, state: 'working', since: madeAt - 4 * 60e3, context: 152000,
+        words: 'Frame 12 is rendering at half size. The counter reads two stops lower already.', doing: tool('Bash', 'Render frame 12 at half size', 35, 0),
+        live: { usd: 9.6, added: 31, removed: 12, warm: true, cacheUntil: madeAt + 44 * 60e3, cacheCold: 152000, cacheHit: 0.95 } }),
+      row({ key: 's-turn', title: 'Turntable export script', cwd: RENDERS, state: 'idle', since: madeAt - 50 * 60e3, at: madeAt - 50 * 60e3, context: 61000, compacts: 0,
+        words: 'The script exports 72 frames, one every five degrees.',
+        live: { usd: 2.2, added: 64, removed: 0, warm: false, cacheUntil: madeAt - 20 * 60e3, cacheCold: 61000, cacheHit: 0.9 } }),
+      row({ key: 's-onboard', title: 'Onboarding flow', cwd: MOBILE, state: 'working', since: madeAt - 7 * 60e3, context: 233000,
+        words: 'Three screens now: welcome, name, done. Checking the skip button on each.', doing: tool('Bash', 'Start the app in the simulator', 50, 0),
+        live: { usd: 14.9, added: 33, removed: 67, warm: true, cacheUntil: madeAt + 49 * 60e3, cacheCold: 233000, cacheHit: 0.96 } }),
+      row({ key: 's-push', title: 'Push notifications', cwd: MOBILE, state: 'attention', waiting: 'dialog open', since: madeAt - 3 * 60e3, context: 74000, compacts: 0,
+        words: 'There are two ways to send them. Which push service do you want?',
+        live: { usd: 1.8, added: 0, removed: 0, warm: true, cacheUntil: madeAt + 2 * 60e3, cacheCold: 74000, cacheHit: 0.92 } }),
+    ];
+    // What the made-up rows shared by the tests leave unsaid, said for a picture: the folder of a session whose console
+    // is in another one, a name and words for the session of the other agent, each folder's branch (every session of
+    // one folder is on the same one), and the plan, the files and the commands of the turns going on. A session at
+    // work that changed files is named on the cards of the others in its folder: one per folder at most.
+    const repo = (folder, branch) => ({ cwd: `D:\\work\\${folder}`, git: { top: `D:\\work\\${folder}`, branch, copy: '', main: `D:\\work\\${folder}`, repo: '' } });
+    const todo = (done, ...texts) => ({ done, total: texts.length, current: texts[done] || '', items: texts.map((text, i) => ({ text, state: i < done ? 'done' : i === done ? 'doing' : 'todo' })) });
+    const changed = (...names) => ({ count: names.length, names });
+    const ran = (count, last) => ({ count, last });
+    const SHOP = repo('shop', 'main');
+    const said = {
+      's-permission': { ...SHOP, steps: todo(3, 'Find where the tax field is lost', 'Carry it over from the basket', 'Run the checkout tests', 'Deploy to production'),
+        files: changed('basket.ts'), commands: ran(1, 'Bash · npm test -- checkout') },
+      's-words': SHOP, 's-error': SHOP, 's-idle': SHOP, 'job:abc12345': SHOP,
+      's-agents': { ...repo('pricing', 'main'), steps: todo(3, 'Read our own plans', 'Find the five pricing pages', 'Compare competitors A, B and C', 'Compare competitors D and E', 'Build the table',
+        'Say where we are out of line') },
+      's-compact': { ...repo('api', 'limiter'), steps: todo(3, 'Split counting into its own module', 'Split storing into its own module', 'Slim the limiter down to answering',
+        'Move the callers in routes/', 'Run every test'), files: changed('count.ts', 'store.ts', 'limiter.ts'), commands: ran(1, 'Bash · npm test -- limiter') },
+      'codex:x': { ...repo('api', 'limiter'), title: 'Flaky login test', words: 'The retry hides a race in the session cookie. Writing a test that fails every time.' },
+      's-finish': { ...repo('landing', 'new-copy'), steps: todo(3, 'Rewrite the hero', 'Rewrite the features', 'Rewrite the pricing'),
+        files: changed('hero.tsx', 'features.tsx', 'pricing.tsx'), commands: ran(1, 'Bash · Build the site') },
+      's-light': { ...repo('renders', 'lights'), steps: todo(2, 'Read the scene', 'Lower and warm the key light', 'Render a test frame', 'Compare it with the last render'),
+        files: changed('kitchen.py'), commands: ran(1, 'Bash · Render frame 12 at half size') },
+      's-turn': { ...repo('renders', 'lights'), files: changed('turntable.py'), commands: ran(1, 'Bash · Plan the turntable without rendering') },
+      's-onboard': { ...repo('mobile', 'onboarding'), steps: todo(2, 'Read the flow', 'Fold screens two and four into the first', 'Check the skip button on each screen', 'Run the app tests'),
+        files: changed('Flow.tsx', 'Welcome.tsx'), commands: ran(1, 'Bash · Start the app in the simulator') },
+      's-push': repo('mobile', 'onboarding'),
+    };
+    const rowsFor = (flip) => [...madeUpRows(flip), ...further()].map((r) => ({ ...r, ...said[r.key], ...(tie[r.key] ? { chat: tie[r.key] } : {}) }));
     // one account in these pictures, as most people have: the rows of other accounts stay out of them
     const alone = (json) => {
       const s = JSON.parse(json);
@@ -4236,28 +4433,143 @@ module.exports = async function selfTest({ app, win, dir, engine, chats, watch, 
     await exec(`takeSnapshot(${alone(fake(madeAt, rowsFor(false)))})`);
     await exec(`takeSnapshot(${alone(fake(madeAt + 1, rowsFor(true)))})`);
     await wait(300);
+
+    // What the Servers page knows shows in these pictures: on its own page, in the marks of its row in the list and in
+    // the question a close asks. From here on it knows made-up servers only: they are sent the way the main process
+    // sends what it sees, and what it really sees (the dev servers running on this machine) is held back until the
+    // last picture is taken.
+    const minutes = (n) => madeAt - n * 60e3;
+    const srv = (id, name, folder, command, over) => ({ id, name, folder: `D:\\work\\${folder}`, command, url: '', seen: '', ports: [], state: 'stopped', label: '', holder: null, exit: null,
+      by: 'app', mem: 0, since: 0, programs: 0, ...over });
+    const madeUpServers = {
+      madeUp: true, at: madeAt, ready: true, hidden: 0,
+      servers: [
+        srv('made-1', 'Shop storefront', 'shop', 'npm run dev', { state: 'running', label: 'vite', seen: 'http://localhost:5173/', ports: [5173], since: minutes(134), mem: 233 * MB, programs: 3, by: 'claude' }),
+        srv('made-2', 'API', 'api', 'npm run dev -- --port 8787', { state: 'running', label: 'node', seen: 'http://localhost:8787/', ports: [8787], since: minutes(131), mem: 148 * MB, programs: 2 }),
+        srv('made-3', 'Phone app bundler', 'mobile', 'npx expo start', { state: 'running', label: 'expo', seen: 'http://localhost:8081/', ports: [8081], since: minutes(52), mem: 302 * MB, programs: 3 }),
+        srv('made-4', 'Docs', 'docs', 'pnpm dev', { url: 'http://localhost:4321/' }),
+        srv('made-5', 'Render queue', 'renders', 'python queue.py', { state: 'failed', url: 'http://localhost:9090/', exit: { at: minutes(48), code: 1 } }),
+      ],
+      loose: [{ key: 'made-loose', folder: 'D:\\work\\pricing', label: 'next-server', name: 'node', via: '', ports: [3000], pid: 0, started: 0, since: minutes(22), mem: 412 * MB }],
+    };
+    const sendWas = win.webContents.send;
+    win.webContents.send = function send(channel, ...args) {
+      if (channel === 'desk:servers' && !(args[0] && args[0].madeUp)) return undefined;
+      return sendWas.call(this, channel, ...args);
+    };
+    // The page also asks the main process what runs, each time its Servers view comes into sight or leaves it, and
+    // takes the answer: the made-up servers are sent again once that answer is in.
+    const madeUpOnly = async () => {
+      await wait(700);
+      win.webContents.send('desk:servers', madeUpServers);
+      return until(() => exec('Servers.view().madeUp === true'), 3000, 50);
+    };
+    await madeUpOnly();
+    const realSeen = [];
+
+    // four workspaces over the made-up folders, each with a colour of its own: short names, so their tabs keep to one line
+    const spaces = {};
+    for (const [name, color, folders] of [['Shop', 'rose', ['shop', 'landing']], ['Work', 'sky', ['pricing', 'api']], ['3D', 'mint', ['renders']], ['App', 'olive', ['mobile']]]) {
+      const id = await call('addSpace', name);
+      await call('colorSpace', id, color);
+      for (const f of folders) { await call('putFolder', at(f), id); await call('putFolder', `D:\\work\\${f}`, id); }
+      spaces[name] = id;
+    }
+    await call('switchSpace', '');
+
     const dress = async () => {
       await wait(700);
       for (const id of await exec('Terms.shown()')) if (kindOf[id]) await inPage(pageDress, id, kindOf[id]);
       await wait(350);
       await exec('paint()');
     };
+    // The work clock counts a session from the person's keys and mouse, and a hidden window gets neither: it is told
+    // of a made-up session before every picture, since the main process says "away" again whenever it speaks.
+    const atWork = () => exec('Shift.take({ on: true, now: Date.now(), auto: false, gap: 15, session: { start: Date.now() - 134 * 60e3, last: Date.now() - 4e3 }, shift: null, offer: null, next: null }); true');
     const picture = async (name) => {
       await exec('document.getElementById("toast").hidden = true');
+      await atWork();
+      if (!(await exec('Servers.view().madeUp === true'))) realSeen.push(name);
       for (let i = 0; i < 3; i++) { await win.webContents.capturePage(); await wait(120); }
       await shoot(name);
     };
     const taken = [];
     const take = async (name) => { await picture(name); taken.push(name); };
+    /** Which chats stand on screen, in which places, and which of them was used last. */
+    const seat = (ids, top) => inPage((list, first) => {
+      const s = Desk.state;
+      s.shown = [...list, ...s.shown.filter((x) => !list.includes(x))];
+      s.recent = [first, ...list.filter((x) => x !== first), ...s.recent.filter((x) => !list.includes(x))];
+      return true;
+    }, ids, top);
+    // going into a chat counts as having seen what it waits for: for a picture every wait counts again, and the chat
+    // that finished while another one had the keyboard is unseen again
+    const unseen = () => exec(`Desk.state.seenWaits.clear(); Desk.state.unread.add('s-finish'); Desk.paint(); true`);
+    const seenAs = [];
+    /** One picture of the chats: a workspace in front ('' for all, also: a second one beside it), so many on screen. */
+    const scene = async (name, space, tiles, ids, top, also = '') => {
+      await exec(`Desk.setTiles(${tiles})`);
+      await seat(ids, top);
+      await call('switchSpace', space);
+      if (also) await call('toggleSpace', also);
+      await view(top);
+      await wait(300);
+      await dress();
+      await unseen();
+      const sp = await spacesNow();
+      seenAs.push({ tabs: sp.tabs.map((t) => t.name), rows: sp.keys.length, on: (await inPage(pageTiles)).n, spill: sp.spill, lines: sp.lines });
+      await take(name);
+    };
 
+    await scene('shots-01-all', '', 4, [checkout, pricing, lighting, onboarding], pricing);
+    await scene('shots-02-shop', spaces.Shop, 2, [checkout, landing], checkout);
+    await scene('shots-03-work', spaces.Work, 2, [pricing, refactor], pricing);
+    await scene('shots-04-3d', spaces['3D'], 2, [lighting, turntable], lighting);
+    await scene('shots-05-app', spaces.App, 2, [onboarding, notify], notify);
+    await scene('shots-06-two', spaces.Shop, 4, [checkout, landing, pricing, refactor], pricing, spaces.Work);
+    const blocks = await exec('[...document.querySelectorAll("#chat-list .ws-block")].length');
+    check('the pictures of the workspaces: every chat, then each workspace with its own chats on screen and in the list, then two of them at once',
+      seenAs.every((s) => same(s.tabs, ['All', 'Shop', 'Work', '3D', 'App']) && !s.spill && s.lines === 1) && same(seenAs.map((s) => s.rows), [13, 6, 3, 2, 2, 9])
+      && same(seenAs.map((s) => s.on), [4, 2, 2, 2, 2, 4]) && blocks === 2,
+      `${seenAs.map((s) => `${s.rows} in the list, ${s.on} on screen, tabs on ${s.lines} line${s.lines === 1 ? '' : 's'}`).join('; ')}; ${blocks} blocks when two are shown`);
+
+    // one chat big, with the panel beside it
+    await exec('Desk.setTiles(1)');
+    await call('switchSpace', spaces.Work);
+    await view(pricing);
+    await exec('Desk.setInspector(true)');
+    await wait(400);
     await dress();
-    await take('shots-1-chats');
-    await view('stats');
-    await wait(500);
-    await take('shots-2-dashboard');
+    await unseen();
+    await take('shots-07-panel');
+    await exec('Desk.setInspector(false)');
+    // every chat of every workspace as a card; then the Dashboard: what runs now and, further down, what today cost
+    await call('switchSpace', '');
     await view('overview');
     await wait(500);
-    await take('shots-3-glance');
+    await unseen();
+    await take('shots-08-cards');
+    await view('stats');
+    await wait(500);
+    await unseen();
+    await take('shots-09-dashboard');
+    const inSight = await inPage(() => {
+      const heads = [...document.querySelectorAll('#stats .sec-head h3')];
+      const head = heads.find((x) => x.textContent === 'Today');
+      const box = head && head.closest('.sec');
+      let el = box;
+      while (el && !(el.scrollHeight > el.clientHeight + 10 && /auto|scroll/.test(getComputedStyle(el).overflowY))) el = el.parentElement;
+      if (!el) return [];
+      // the line that parts it from what stands above goes just out of sight
+      el.scrollTop += box.getBoundingClientRect().top - el.getBoundingClientRect().top + 6;
+      const frame = el.getBoundingClientRect();
+      return heads.filter((x) => { const r = x.getBoundingClientRect(); return r.bottom > frame.top && r.top < frame.bottom; }).map((x) => x.textContent);
+    });
+    await wait(400);
+    // the accounts stand higher up on that page: this picture is of the day's numbers and of nothing else
+    const dayOnly = inSight.includes('Today') && inSight.includes('Day by day') && !inSight.some((x) => /account|limits reset/i.test(x));
+    if (dayOnly) await take('shots-10-usage');
+    check("the Dashboard's picture of the day shows what the day cost and no account", dayOnly && taken.includes('shots-10-usage'), inSight.join(' / '));
 
     // the chat that rewrote a landing page, with its pages beside it: Claude Code's side talks to the door as it would
     const LANDING = '<!doctype html><html><head><meta charset="utf-8"><title>Fieldnote · notes that find you</title><style>'
@@ -4315,7 +4627,8 @@ module.exports = async function selfTest({ app, win, dir, engine, chats, watch, 
       // the window's own picture leaves out the pages laid over it: the page is put in as the panel's own picture
       const still = tab ? await browser.get().still(tab) : '';
       await inPage((src) => { const s = document.querySelector('#web .web-still'); s.src = src; s.hidden = !src; document.querySelector('#web .web-empty').hidden = true; }, still);
-      await take('shots-4-browser');
+      await unseen();
+      await take('shots-11-browser');
       await inPage(() => { const s = document.querySelector('#web .web-still'); s.hidden = true; s.removeAttribute('src'); });
       await exec(`Browser.toggleFor(${JSON.stringify(landing)}, false)`);
       check('the Browser picture: the chat opened the made-up landing page in its own page, shown beside it', !went.error && Boolean(tab) && still.length > 1000,
@@ -4352,7 +4665,8 @@ module.exports = async function selfTest({ app, win, dir, engine, chats, watch, 
       await until(async () => { const s = await inPage(() => Viewer.state()); return s.open && s.media.length === 2 && s.media.every((m) => m.w === 1280) ? s : null; }, 8000, 100);
       await settled();
       await dress();
-      await take('shots-5-viewer');
+      await unseen();
+      await take('shots-12-viewer');
       check('the Viewer picture: the chat showed its two takes side by side', !shown.error, JSON.stringify({ error: shown.error, said: shown.text.slice(0, 160) }));
       await use(sid, 'media_control', { action: 'close' });
     } finally {
@@ -4360,14 +4674,101 @@ module.exports = async function selfTest({ app, win, dir, engine, chats, watch, 
       await new Promise((done) => { site.close(() => done()); setTimeout(done, 2000); });
     }
 
+    // a past conversation being read, from the list of every conversation kept on the machine (made-up ones here)
+    await call('switchSpace', '');
+    await view('history');
+    const past = await until(async () => { const n = await exec('document.querySelectorAll("#history .row").length'); return n >= 8 ? n : null; }, 5000, 100);
+    await tabOf('history', 'conv');
+    await wait(400);
+    await unseen();
+    await take('shots-14-history');
+
+    // the search box, over the chats of every workspace
     await exec('Desk.setTiles(4)');
-    await view('settings');
-    await wait(500);
-    await take('shots-6-settings');
-    await exec('Settings.close()');
+    await seat([checkout, pricing, lighting, onboarding], pricing);
+    await view(pricing);
+    await wait(300);
+    await dress();
+    await unseen();
+    await exec('Palette.open()');
+    await wait(400);
+    const offered = await exec('document.querySelectorAll("#palette .pal-item").length');
+    await take('shots-15-search');
+    await exec('Palette.close()');
+
+    // the card that floats over other programs, for the chat in front: its plan, its subagents, its memory, what it
+    // used. A window of its own, which a hidden run never shows: its picture is taken from it.
+    let card = null;
+    if (float) {
+      float.place(null);
+      try {
+        await ctrl('KeyF', { shift: true });
+        const cardWin = await until(() => { const w = float.win(); return w && !w.isDestroyed() && !w.webContents.isLoading() && float.model() !== null ? w : null; }, 8000);
+        const readCard = () => cardWin.webContents.executeJavaScript(`(() => {
+          const root = document.getElementById('card');
+          if (!root || root.hidden) return null;
+          const t = (sel) => { const el = root.querySelector(sel); return el ? el.textContent : ''; };
+          return { name: t('.fc-name'), plan: t('.fc-plan .fc-count'), agents: root.querySelectorAll('.fc-agent').length, needs: t('.fc-needs'), working: t('.fc-working'),
+            height: Math.ceil(root.getBoundingClientRect().height) };
+        })()`, true);
+        // its page tells the time by itself: it is put on the made-up afternoon too, and counts from there at its next second
+        if (cardWin) await cardWin.webContents.executeJavaScript(`(${pageClock})(${ahead})`, true);
+        await wait(1300);
+        // its fonts arrive after its first draw, and its window follows the card's height
+        card = cardWin ? await until(async () => { const c = await readCard(); return c && c.name === 'Pricing research' && cardWin.getBounds().height === c.height + 16 ? c : null; }, 8000) : null;
+        if (card) {
+          await cardWin.webContents.capturePage();
+          await wait(150);
+          fs.writeFileSync(path.join(dir, 'shots-17-card.png'), (await cardWin.webContents.capturePage()).toPNG());
+          taken.push('shots-17-card');
+        }
+        // switched off the way it was switched on, so the window knows
+        await ctrl('KeyF', { shift: true });
+        await until(async () => !float.win() && (await exec('Desk.state.settings.float.on')) === false, 4000);
+      } finally {
+        float.set({ on: false, small: false, overDesk: false });
+        float.place(null);
+      }
+    }
+    check('the floating card picture: the chat in front with its plan and its subagents at work, and the chats that need the person by name',
+      Boolean(card) && card.plan === '3 of 6 done · 1 under way' && card.agents === 3 && /^\d need you:.*Checkout page rebuild/.test(card.needs) && taken.includes('shots-17-card')
+      && settingsNow().float.on === false && !float.win(), JSON.stringify(card));
+
+    // the Servers page: the picture is taken only if it names the made-up servers and nothing else
+    const wanted = [...madeUpServers.servers.map((s) => s.name), 'pricing'];
+    await view('servers');
+    await madeUpOnly();
+    const named = await until(async () => { const n = await exec('[...document.querySelectorAll("#servers .srv-name")].map((x) => x.textContent)'); return same(n, wanted) ? n : null; }, 4000, 100) || [];
+    await wait(300);
+    if (same(await exec('[...document.querySelectorAll("#servers .srv-name")].map((x) => x.textContent)'), wanted)) await take('shots-13-servers');
+    check('the Servers picture shows the made-up servers and no server of this machine', same(named, wanted) && taken.includes('shots-13-servers'), `${named.length} named on the page`);
+
+    // the question a close asks, Gaming mode among its choices: its sentence counts what the Servers page knows
+    await view(pricing);
+    await madeUpOnly();
+    await dress();
+    await unseen();
+    let asked = null;
+    let closes = '';
+    if (await exec('Servers.view().madeUp === true')) {
+      win.webContents.send('desk:command', 'ask-leave');
+      asked = await until(async () => !(await exec('document.getElementById("leave").hidden')), 3000);
+      closes = await exec('(document.querySelector("#leave .leave-choice[data-how=gaming] .leave-note") || {}).textContent || ""');
+      if (asked && closes.startsWith('Closes your 8 chats, 3 pinned servers and 1 other dev server,')) await take('shots-16-leave');
+      await inPage(pageKey, 'Escape', '#leave');
+      await wait(150);
+    }
+    check('the picture of the question a close asks counts the made-up servers and no server of this machine', Boolean(asked) && taken.includes('shots-16-leave'), closes.slice(0, 90));
+    win.webContents.send = sendWas;
+    check('no picture was taken while the window knew of a server of this machine', realSeen.length === 0, realSeen.join(' '));
+
     const list = await inPage(pageList);
-    check('the pictures were taken with made-up chats only: four consoles drawn over and nine made-up sessions in the list',
-      list.rows === 9 && list.here === 4 && list.away === 5 && list.ended === 0, `${taken.length} pictures; ${list.rows} sessions in the list, ${list.here} of them chats of this window`);
+    check('History, the search box and the question a close asks were in front of their pictures, and the close was not answered',
+      past === 8 && offered > 8 && Boolean(asked) && (await exec('document.getElementById("leave").hidden')) === true && chats.all.size === 8,
+      `${past} conversations in History; ${offered} things offered by the search box; chats still open: ${chats.all.size}`);
+    check('the pictures were taken with made-up chats only: eight consoles drawn over and thirteen made-up sessions in the list',
+      list.rows === 13 && list.here === 8 && list.away === 5 && list.ended === 0, `${list.rows} sessions in the list, ${list.here} of them chats of this window`);
+    check('seventeen pictures, each taken once', taken.length === 17 && new Set(taken).size === 17, taken.map((name) => name.replace('shots-', '')).join(' '));
   };
 
   const stripPhase = async () => {
@@ -8295,6 +8696,8 @@ module.exports = async function selfTest({ app, win, dir, engine, chats, watch, 
       await view('servers');
       check('the servers page opens empty: nothing pinned, and it says how to pin one', (await exec('Servers.view().servers.length')) === 0
         && (await exec('!document.querySelector("#servers .srv-empty").hidden && document.querySelector("#servers .srv-empty").textContent.startsWith("Nothing pinned yet")')));
+      const headSays = await exec('document.getElementById("crumb").textContent');
+      check('the head of the window says where the person is: Servers', headSays === 'Servers', headSays);
 
       // 1. Claude Code pins a server through the command line; the open window takes it in by itself
       const cli = (...args) => spawnSync(process.execPath, [path.join(__dirname, 'servers-cli.cjs'), ...args, '--profile', app.getPath('userData')],
