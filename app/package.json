@@ -1,7 +1,7 @@
 {
   "name": "lowlit",
   "version": "0.1.0",
-  "description": "A quiet desk for your Claude Code chats: every chat in one window, the numbers beside them.",
+  "description": "Desktop session manager for Claude Code on Windows: every chat in one window, as real terminals grouped into workspaces.",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",

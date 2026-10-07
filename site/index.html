@@ -225,7 +225,16 @@
 
   <section id="install" class="install" aria-labelledby="install-h">
     <h2 id="install-h">Install</h2>
-    <p class="sub">Windows 10 or 11, Node.js 22 or newer, Git, Claude Code.</p>
+    <p class="sub">One line. You need Windows 10 or 11, Node.js 22 or newer, Git and Claude Code.</p>
+    <div class="term one">
+      <div class="term-bar">
+        <span>PowerShell</span>
+        <button class="copy" type="button" data-copy="irm https://getlowlit.pages.dev/install.ps1 | iex">Copy</button>
+      </div>
+<pre><code><span class="p">&gt;</span> irm https://getlowlit.pages.dev/<wbr>install.ps1 | iex</code></pre>
+    </div>
+    <p class="after">It checks for Git and Node.js, puts Lowlit in a folder of yours, fetches its parts and opens the window. No administrator rights, nothing compiled, nothing deleted. <a href="install.ps1">The script</a> is short: read it first if you like. The same line updates Lowlit.</p>
+    <p class="after or">Or by hand:</p>
     <div class="term">
       <div class="term-bar">
         <span>Terminal</span>
@@ -236,7 +245,7 @@
 <span class="p">&gt;</span> npm install
 <span class="p">&gt;</span> npm start</code></pre>
     </div>
-    <p class="after">Nothing is compiled on your machine. The limit bars need one entry in your Claude Code settings, and the Browser is off until you switch it on: the <a href="https://github.com/anessbelbati/lowlit#readme">README</a> has both.</p>
+    <p class="after">Both ways are run on a clean Windows machine at every change. The limit bars need one entry in your Claude Code settings, and the Browser is off until you switch it on: the <a href="https://github.com/anessbelbati/lowlit#readme">README</a> has both.</p>
   </section>
 </main>
 

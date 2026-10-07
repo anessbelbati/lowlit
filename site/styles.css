@@ -204,9 +204,13 @@ h2 { font-size: clamp(26px, 3.2vw, 40px); line-height: 1.08; font-weight: 600; l
 .term pre { padding: 18px 20px 20px; overflow-x: auto; color: var(--text); font: 400 14px/1.9 var(--mono); letter-spacing: 0; }
 .term pre code { font-size: inherit; }
 .term .p { margin-right: 6px; color: var(--text-4); user-select: none; }
+.term.one pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.term.one code { display: block; padding-left: calc(2ch + 6px); text-indent: calc(-2ch - 6px); }
 .after { margin-top: 20px; color: var(--text-2); font-size: 15.5px; text-wrap: pretty; }
 .after a { color: var(--text); text-decoration: underline; text-decoration-color: rgba(255, 255, 255, .32); text-underline-offset: 3px; transition: text-decoration-color 160ms var(--ease); }
 .after a:hover { text-decoration-color: #fff; }
+.after.or { margin-top: 40px; color: var(--text-3); }
+.after.or + .term { margin-top: 14px; }
 
 .foot { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 20px 32px; margin-top: var(--part); padding: 36px 0 56px; border-top: 1px solid var(--line-2); }
 .foot nav { display: flex; flex-wrap: wrap; gap: 8px 24px; color: var(--text-2); font-size: 14px; }

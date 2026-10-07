@@ -2,7 +2,7 @@
   "name": "lowlit",
   "version": "0.1.0",
   "private": true,
-  "description": "A quiet desk for your Claude Code chats: every chat in one window, the numbers beside them.",
+  "description": "Desktop session manager for Claude Code on Windows: every chat in one window, as real terminals grouped into workspaces.",
   "license": "MIT",
   "author": "Aness Belbati",
   "homepage": "https://github.com/anessbelbati/lowlit#readme",

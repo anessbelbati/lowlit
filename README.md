@@ -10,11 +10,40 @@
   Real terminals running the real <code>claude</code>. Grouped into workspaces. The ones that need you on top.
 </p>
 
-<p align="center">Windows 10 and 11 &nbsp;·&nbsp; free &nbsp;·&nbsp; MIT &nbsp;·&nbsp; runs on your computer only</p>
+<p align="center">
+  <a href="https://github.com/anessbelbati/lowlit/actions/workflows/check.yml"><img src="https://github.com/anessbelbati/lowlit/actions/workflows/check.yml/badge.svg?branch=main" alt="Every change is installed and started on a clean Windows machine"></a>
+  <a href="https://github.com/anessbelbati/lowlit/releases"><img src="https://img.shields.io/github/v/release/anessbelbati/lowlit?label=release&color=555" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-555" alt="MIT licence"></a>
+  <img src="https://img.shields.io/badge/Windows-10%20and%2011-555" alt="Windows 10 and 11">
+  <img src="https://img.shields.io/badge/runs-on%20your%20computer%20only-555" alt="Runs on your computer only">
+</p>
 
 ![Lowlit, one workspace after the other: every chat, then Shop, Work, 3D and App with only their own chats in the list and on screen, then Shop and Work at once.](docs/workspaces.gif)
 
-Each chat is a terminal running the `claude` you already have: your settings, hooks, MCP servers, plugins and slash commands work unchanged. Lowlit reads the files Claude Code writes on your disk and shows what they say.
+Lowlit is a desktop session manager for Claude Code on Windows. Each chat is a terminal running the `claude` you already have: your settings, hooks, MCP servers, plugins and slash commands work unchanged. Lowlit reads the files Claude Code writes on your disk and shows what they say.
+
+## Install
+
+One line, in PowerShell:
+
+```
+irm https://getlowlit.pages.dev/install.ps1 | iex
+```
+
+It checks for Git and Node.js, puts Lowlit in `%USERPROFILE%\lowlit`, fetches its parts and opens the window. No administrator rights, nothing compiled, nothing deleted. [The script](site/install.ps1) is short: read it first if you like. The same line updates Lowlit.
+
+Or by hand:
+
+```
+git clone https://github.com/anessbelbati/lowlit
+cd lowlit
+npm install
+npm start
+```
+
+Either way you need Windows 10 or 11, [Node.js](https://nodejs.org) 22 or newer, Git, and Claude Code installed and logged in (typing `claude` in a terminal starts it). `npm install` downloads Electron and the terminal parts, ready built. Both ways are run on a clean Windows machine at every change to this repository, and the window is started there: that is the first badge above.
+
+To open Lowlit without a terminal, double-click `app\Lowlit.vbs`, or add it to the Start menu in Settings > Opening Lowlit. Chats you start in Lowlit run in Lowlit. The ones already running in other terminals show up in the list too, with their state and their numbers.
 
 ## Workspaces
 
@@ -81,21 +110,6 @@ And:
 - **The Nest.** One big chat kept apart for a folder of your own, a key away from any program.
 - **Gaming mode.** Closes every chat and dev server, and brings them back next time.
 
-## Install
-
-You need Windows 10 or 11, [Node.js](https://nodejs.org) 22 or newer, Git, and Claude Code installed and logged in (typing `claude` in a terminal starts it).
-
-```
-git clone https://github.com/anessbelbati/lowlit
-cd lowlit
-npm install
-npm start
-```
-
-`npm install` downloads Electron and the terminal parts, ready built: nothing is compiled on your machine. To open Lowlit without a terminal, double-click `app\Lowlit.vbs`, or add it to the Start menu in Settings > Opening Lowlit.
-
-Chats you start in Lowlit run in Lowlit. The ones already running in other terminals show up in the list too, with their state and their numbers.
-
 ## Usage limits
 
 Claude Code hands your plan's limits (Pro and Max) to one place only: a status line command. Lowlit ships one. Add it to `~/.claude/settings.json`, with the path to your clone written in forward slashes:
@@ -149,7 +163,7 @@ Anthropic's own desktop app runs several Claude Code sessions side by side, with
 
 Lowlit is for people who live in the terminal `claude` and want to keep it: the same program, your own configuration, many at once. It is the public copy of the desk its author works at every day.
 
-It is early, and Windows only for now. Expect rough edges, and tell me about them.
+It is early, and Windows only for now. Expect rough edges, and tell me about them. If it is useful to you, a star helps other people find it.
 
 ## Keys
 
@@ -167,7 +181,7 @@ It is early, and Windows only for now. Expect rough edges, and tell me about the
 | `Ctrl Shift Space` | The Nest, from any program |
 | `Ctrl ,` | Settings, with every key |
 
-## Working on it
+## Contributing
 
 ```
 npm run check

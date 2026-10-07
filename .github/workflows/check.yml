@@ -1,8 +1,9 @@
-name: check
+name: install on a clean machine
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -46,4 +47,137 @@ jobs:
             ~\AppData\Local\lowlit-dev\runs\ci\report.txt
             ~\AppData\Local\lowlit-dev\runs\ci\stdout.log
             ~\AppData\Local\lowlit-dev\runs\ci\stderr.log
+          if-no-files-found: ignore
+
+  # the one line of the README, on a machine that has never seen the project, run the way a stranger's Windows runs it:
+  # as text handed to PowerShell (no script file), with script files refused as on a default Windows, into a folder
+  # whose name holds a space. Then: a later change fetched by the same line under PowerShell 7, the installed copy's own
+  # checks (hidden, with made-up chats), the line opening the real window, the line run again while that window is
+  # open, and the launcher the shortcuts use. The code comes from this very commit, not from the published one.
+  one-line:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: The line installs, on a Windows that refuses script files
+        shell: powershell
+        run: |
+          git checkout -q -B main
+          $dir = Join-Path $env:RUNNER_TEMP 'lowlit one line'
+          $repo = 'file:///' + ($env:GITHUB_WORKSPACE -replace '\\', '/')
+          "LOWLIT_DIR=$dir", "LOWLIT_REPO=$repo" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $env:LOWLIT_DIR = $dir
+          $env:LOWLIT_REPO = $repo
+          $env:LOWLIT_NO_START = '1'
+          powershell -NoProfile -ExecutionPolicy Restricted -Command 'Get-Content -Raw site\install.ps1 | Invoke-Expression' | Tee-Object -Variable said
+          if (-not ($said -match '^lowlit: ready in ')) { exit 1 }
+          $changed = git -C $dir status --porcelain --untracked-files=no
+          if ($changed) { 'the install changed files of the code:'; $changed; exit 1 }
+      - name: The same line fetches a later change, under PowerShell 7
+        shell: pwsh
+        run: |
+          git -c user.name=check -c user.email=check@example.invalid commit -q --allow-empty -m 'a later change'
+          $env:LOWLIT_NO_START = '1'
+          pwsh -NoProfile -Command 'Get-Content -Raw site/install.ps1 | Invoke-Expression' | Tee-Object -Variable said
+          if (-not ($said -match '^lowlit: bringing ') -or -not ($said -match '^lowlit: ready in ')) { exit 1 }
+          $here = git rev-parse HEAD
+          $there = git -C $env:LOWLIT_DIR rev-parse HEAD
+          "the later change: $here; the installed copy: $there"
+          if ($here -ne $there) { exit 1 }
+      - name: The installed copy starts and its checks pass
+        shell: powershell
+        run: |
+          $lines = & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $env:LOWLIT_DIR 'app\dev\run-selftest.ps1') -Name oneline -Only states -TimeoutSec 600
+          $lines
+          if (-not ($lines -match '^RESULT: \d+ passed, 0 failed')) { exit 1 }
+      - name: The line opens the window, and the window stays open
+        shell: powershell
+        run: |
+          $window = Join-Path $env:LOWLIT_DIR 'app\node_modules\electron\dist\electron.exe'
+          function Programs { @(Get-CimInstance Win32_Process -Filter "Name = 'electron.exe'" | Where-Object { $_.ExecutablePath -eq $window }) }
+          function Windows { @(Programs | ForEach-Object { Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue } | Where-Object { $_.MainWindowHandle -ne 0 }) }
+          powershell -NoProfile -ExecutionPolicy Restricted -Command 'Get-Content -Raw site\install.ps1 | Invoke-Expression' | Tee-Object -Variable said
+          if (-not ($said -match '^lowlit: opening')) { exit 1 }
+          for ($i = 0; $i -lt 60 -and -not (Windows).Count; $i++) { Start-Sleep -Seconds 1 }
+          "after $i s: $((Programs).Count) program(s), $((Windows).Count) window(s) on screen"
+          if (-not (Windows).Count) { exit 1 }
+          Start-Sleep -Seconds 20
+          "20 s later: $((Programs).Count) program(s), $((Windows).Count) window(s) on screen"
+          if (-not (Windows).Count) { exit 1 }
+      - name: Run again while the window is open, the line waits for the quit and goes on
+        shell: powershell
+        run: |
+          $window = Join-Path $env:LOWLIT_DIR 'app\node_modules\electron\dist\electron.exe'
+          # the quit a person does from the icon near the clock: here its programs are ended, 10 s into the wait
+          $quit = Start-Job -ArgumentList $window -ScriptBlock {
+            param($window)
+            Start-Sleep -Seconds 10
+            Get-CimInstance Win32_Process -Filter "Name = 'electron.exe'" | Where-Object { $_.ExecutablePath -eq $window } |
+              ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+          }
+          $env:LOWLIT_NO_START = '1'
+          powershell -NoProfile -ExecutionPolicy Restricted -Command 'Get-Content -Raw site\install.ps1 | Invoke-Expression' | Tee-Object -Variable said
+          Receive-Job $quit -Wait
+          if (-not ($said -match '^lowlit: it is running from ') -or -not ($said -match '^lowlit: ready in ')) { exit 1 }
+      - name: The launcher the shortcuts use opens it too
+        shell: powershell
+        run: |
+          $window = Join-Path $env:LOWLIT_DIR 'app\node_modules\electron\dist\electron.exe'
+          function Programs { @(Get-CimInstance Win32_Process -Filter "Name = 'electron.exe'" | Where-Object { $_.ExecutablePath -eq $window }) }
+          function Windows { @(Programs | ForEach-Object { Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue } | Where-Object { $_.MainWindowHandle -ne 0 }) }
+          Start-Process -FilePath wscript.exe -ArgumentList ('"{0}"' -f (Join-Path $env:LOWLIT_DIR 'app\Lowlit.vbs'))
+          for ($i = 0; $i -lt 60 -and -not (Windows).Count; $i++) { Start-Sleep -Seconds 1 }
+          "after $i s: $((Programs).Count) program(s), $((Windows).Count) window(s) on screen"
+          if (-not (Windows).Count) { exit 1 }
+          Start-Sleep -Seconds 20
+          "20 s later: $((Programs).Count) program(s), $((Windows).Count) window(s) on screen"
+          if (-not (Windows).Count) { exit 1 }
+      - name: Keep the reports when it failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selftest-one-line
+          path: |
+            ~\AppData\Local\lowlit-dev\runs\oneline\report.txt
+            ~\AppData\Local\lowlit-dev\runs\oneline\stdout.log
+            ~\AppData\Local\lowlit-dev\runs\oneline\stderr.log
+            ~\AppData\Roaming\lowlit\desk.log
+          if-no-files-found: ignore
+
+  # the published line itself: the script the live site serves and the code GitHub hands out, on a machine that has
+  # never seen the project. Started by hand (Actions > Run workflow) after the site or the script changed.
+  published:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: The line of the README, as published, opens the window
+        shell: powershell
+        run: |
+          $window = Join-Path $HOME 'lowlit\app\node_modules\electron\dist\electron.exe'
+          function Programs { @(Get-CimInstance Win32_Process -Filter "Name = 'electron.exe'" | Where-Object { $_.ExecutablePath -eq $window }) }
+          function Windows { @(Programs | ForEach-Object { Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue } | Where-Object { $_.MainWindowHandle -ne 0 }) }
+          powershell -NoProfile -ExecutionPolicy Restricted -Command 'irm https://getlowlit.pages.dev/install.ps1 | iex' | Tee-Object -Variable said
+          if (-not ($said -match '^lowlit: opening')) { exit 1 }
+          for ($i = 0; $i -lt 60 -and -not (Windows).Count; $i++) { Start-Sleep -Seconds 1 }
+          "after $i s: $((Programs).Count) program(s), $((Windows).Count) window(s) on screen"
+          if (-not (Windows).Count) { exit 1 }
+          Start-Sleep -Seconds 20
+          "20 s later: $((Programs).Count) program(s), $((Windows).Count) window(s) on screen"
+          if (-not (Windows).Count) { exit 1 }
+          "the installed copy is at $(git -C (Join-Path $HOME 'lowlit') rev-parse HEAD)"
+      - name: Keep its log when it failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-line
+          path: ~\AppData\Roaming\lowlit\desk.log
           if-no-files-found: ignore
