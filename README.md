@@ -30,7 +30,7 @@ One line, in PowerShell:
 irm https://getlowlit.pages.dev/install.ps1 | iex
 ```
 
-It checks for Git and Node.js, puts Lowlit in `%USERPROFILE%\lowlit`, fetches its parts and opens the window. No administrator rights, nothing compiled, nothing deleted. [The script](site/install.ps1) is short: read it first if you like. The same line updates Lowlit.
+It checks for Git and Node.js, puts Lowlit in `%USERPROFILE%\lowlit`, fetches its parts and opens the window. No administrator rights, nothing compiled, nothing deleted. [The script](site/install.ps1) is short: read it first if you like. The same line updates Lowlit; for a copy made by hand, name its folder first (`$env:LOWLIT_DIR = 'C:\path\to\lowlit'`).
 
 Or by hand:
 

@@ -77,7 +77,7 @@ jobs:
           powershell -NoProfile -ExecutionPolicy Restricted -Command 'Get-Content -Raw site\install.ps1 | Invoke-Expression' | Tee-Object -Variable said
           if (-not ($said -match '^lowlit: ready in ')) { exit 1 }
           $changed = git -C $dir status --porcelain --untracked-files=no
-          if ($changed) { 'the install changed files of the code:'; $changed; exit 1 }
+          if ($changed) { 'the install changed files of the code:'; $changed; git -C $dir --no-pager diff --unified=1; exit 1 }
       - name: The same line fetches a later change, under PowerShell 7
         shell: pwsh
         run: |

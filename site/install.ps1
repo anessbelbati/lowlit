@@ -8,8 +8,9 @@
 #   3. runs "npm install" there, which downloads Electron and the terminal parts, ready built;
 #   4. opens the window.
 # It asks for no administrator rights, installs no other program, changes no setting of Windows and deletes nothing.
-# Run the same line again to update. To remove Lowlit: quit it, then delete the folder (its own settings are in
-# %APPDATA%\lowlit).
+# Run the same line again to update: when the only files that differ from the published code are npm's own lists of
+# versions (package-lock.json), those are put back first. To remove Lowlit: quit it, then delete the folder (its own
+# settings are in %APPDATA%\lowlit).
 #
 #     $env:LOWLIT_DIR = 'D:\tools\lowlit'    another folder for the code
 #     $env:LOWLIT_NO_START = '1'             everything but opening the window
@@ -17,7 +18,11 @@
 & {
   $ErrorActionPreference = 'Stop'
   function Say([string]$text) { Write-Host "lowlit: $text" }
-  function Same([string]$a, [string]$b) { ($a -replace '\.git$', '').TrimEnd('/') -eq ($b -replace '\.git$', '').TrimEnd('/') }
+  # one project under the ways Git writes its address: with or without ".git", over https or over ssh
+  function Same([string]$a, [string]$b) {
+    $plain = { param($u) (($u -replace '^(git@github\.com:|ssh://git@github\.com/)', 'https://github.com/') -replace '\.git$', '').TrimEnd('/') }
+    (& $plain $a) -eq (& $plain $b)
+  }
   # Git and npm print their progress where PowerShell expects errors: in a window that reads those lines itself (the
   # ISE, a run sent to a file) each one would end the install
   function Run([string]$program, [string[]]$with) {
@@ -67,6 +72,12 @@
       if ($LASTEXITCODE -ne 0) { throw "Lowlit was not updated: Git could not read the folder $dir. What it printed above says why." }
       if (-not (Same $from $repo)) {
         throw "Lowlit was not installed: the folder $dir holds another project. Set `$env:LOWLIT_DIR to another folder and run the line again."
+      }
+      # npm rewrites its own lists of exact versions (package-lock.json) in small ways: when those are the only files
+      # of the code that differ, they are put back as published, or the update would be refused over them
+      $touched = @(Run git.exe '-C', $dir, 'status', '--porcelain', '--untracked-files=no' | ForEach-Object { "$_".Substring(3) })
+      if ($touched.Count -and -not @($touched | Where-Object { $_ -notmatch '(^|/)package-lock\.json$' }).Count) {
+        Run git.exe (@('-C', $dir, 'checkout', '--') + $touched)
       }
       Say "bringing $dir up to date"
       Run git.exe '-C', $dir, 'pull', '--ff-only'
