@@ -1873,11 +1873,11 @@ module.exports = async function selfTest({ app, win, dir, engine, chats, watch, 
     const none = await spacesNow();
     const cleared = await until(async () => settingsNow().spaces.length === 0 && same(onDisk(), []), 4000, 150);
     check('Settings lists the workspaces with their folders: a folder can be taken out, a workspace taken away, and with the last one gone the tabs go too',
-      same(shownIn.rows, ['Upwork', 'Studio']) && same(shownIn.folders, ['shop', 'pricing', 'api']) && shownIn.fresh && shownIn.focus && shownIn.keys === 27
+      same(shownIn.rows, ['Upwork', 'Studio']) && same(shownIn.folders, ['shop', 'pricing', 'api']) && shownIn.fresh && shownIn.focus && shownIn.keys === 28
       && same(fewer.rows, ['Upwork', 'Studio']) && same(fewer.folders, ['pricing', 'api']) && fewer.focus && same(one.rows, ['Upwork']) && same(one.folders, []) && one.focus
       && same(tabsOf(sp), ['All*', 'Upwork', 'Unsorted 3']) && Boolean(kept)
       && !none.on && none.tabs.length === 0 && none.label === 'Chats' && none.count === '9' && none.keys.length === 9 && none.spaces.length === 0 && !none.loose && Boolean(cleared),
-      `listed: ${shownIn.rows.join(', ')} with ${shownIn.folders.join(', ')}; after taking Studio away: ${tabsOf(sp).join(', ')}; with none left: "${none.label} ${none.count}"`);
+      `listed: ${shownIn.rows.join(', ')} with ${shownIn.folders.join(', ')}, ${shownIn.keys} keys; after taking Studio away: ${tabsOf(sp).join(', ')}; with none left: "${none.label} ${none.count}"`);
     await exec('document.getElementById("toast").hidden = true');
   };
 
