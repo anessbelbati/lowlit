@@ -141,7 +141,7 @@ const Palette = (() => {
       const s = act.session(chat.id);
       out.push({ group: 'Chats in this window', label: act.label(chat), sub: (s && phrase(s)) || folderOf(chat.cwd), mark: act.mark(s), text: chat.cwd, run: () => act.setView(chat.id) });
     }
-    const others = state.snap.chats.filter((c) => !(c.chat && here.has(c.chat))).sort((a, b) => RANK[a.state] - RANK[b.state] || b.at - a.at);
+    const others = state.snap.chats.filter((c) => !(c.chat && here.has(c.chat)) && !c.placing).sort((a, b) => RANK[a.state] - RANK[b.state] || b.at - a.at);
     for (const c of others) {
       out.push({ group: 'In other terminals', label: labelOf(c), sub: phrase(c) || folderOf(c.cwd), mark: act.mark(c), text: `${c.cwd} ${c.kind === 'bg' ? 'background' : ''}`, run: () => act.showSession(c.key) });
     }

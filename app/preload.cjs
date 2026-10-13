@@ -32,6 +32,9 @@ contextBridge.exposeInMainWorld('desk', {
   findSorted: (q) => ipcRenderer.invoke('desk:find-sort', q),
   // Jev: 'view', ('on', true|false), ('key', text); the key is never given back
   jev: (what, value) => ipcRenderer.invoke('desk:jev', what, value),
+  // the voice: 'view', ('on' | 'tell', true|false), ('key', text), ('voice', id, name), 'voices', 'plan', 'hear-it',
+  // ('brief', project), 'stop', ('heard', bytes, kind, seconds); the key is never given back
+  voice: (what, a, b, c) => ipcRenderer.invoke('desk:voice', what, a, b, c),
   read: (ask) => ipcRenderer.invoke('desk:read', ask),
   history: () => ipcRenderer.invoke('desk:history'),
   record: (ask) => ipcRenderer.invoke('desk:record', ask),
@@ -87,6 +90,7 @@ contextBridge.exposeInMainWorld('desk', {
   onVersion: on('desk:version'),
   onFindProgress: on('desk:find-progress'),
   onJev: on('desk:jev'),
+  onVoice: on('desk:voice'),
   onServers: on('desk:servers'),
   onWork: on('desk:work'),
 });

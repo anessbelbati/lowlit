@@ -1,5 +1,5 @@
 'use strict';
-/* global desk, Terms, Side, Peek, History, Stats, Record, Servers, ChatView, Glance, Picker, Palette, Settings, Cards, Parts, Detail, Reader, Jev, Morning, Noir, h, fill, icon, glyph, kept, held, labelOf, phrase, markOf, folderOf, toast, initTips, acctName, DiskNotes, popMenu, Nest, Browser, Sizes, Shift */
+/* global desk, Terms, Side, Peek, History, Stats, Record, Servers, ChatView, Glance, Picker, Palette, Settings, Cards, Parts, Detail, Reader, Jev, Morning, Noir, h, fill, icon, glyph, kept, held, labelOf, phrase, markOf, folderOf, toast, initTips, acctName, DiskNotes, popMenu, Nest, Browser, Sizes, Shift, Voice */
 // The window's shell: the title bar, which view is in front (the chats on
 // screen, a session looked at from the sidebar, History, the Dashboard or the Servers),
 // which chats share the screen and which of them has the keyboard, and the
@@ -304,7 +304,7 @@ function chatSub(chat) {
 /** The chats of the workspace in front that run in other terminals and could be moved into this window. */
 function movable() {
   const here = new Set(state.chats.map((c) => c.id));
-  return state.snap.chats.filter((c) => c.provider === 'claude' && c.pid && c.session && c.kind !== 'bg' && !(c.chat && here.has(c.chat)) && inView(c.cwd, c.key));
+  return state.snap.chats.filter((c) => c.provider === 'claude' && c.pid && c.session && c.kind !== 'bg' && !(c.chat && here.has(c.chat)) && !c.placing && inView(c.cwd, c.key));
 }
 /** How many of them there are, the ones already on their way here left out. */
 const elsewhere = () => movable().filter((c) => !state.armed.has(c.session)).length;
@@ -401,11 +401,13 @@ function drawBar() {
 // ---- the chat with what it is doing, then the branch it works on ----
 const VIEW_NAMES = { stats: 'Dashboard', history: 'History', record: 'Record', overview: 'Every chat at a glance', settings: 'Settings', servers: 'Servers' };
 function chatMenu(chat, x, y) {
+  const s = sessionOf(chat.id);
   popMenu(x, y, [
     { label: 'Rename', icon: 'pencil', run: () => { setView(chat.id); ChatView.rename(); } },
     { label: 'Open its folder', icon: 'folder', run: () => desk.openFolder(chat.cwd) },
     { label: 'New chat, this folder first', icon: 'plus', key: 'Ctrl Shift T', run: openPicker },
-    canCompact(chat.id) && { label: Jev.ready(sessionOf(chat.id)) ? 'Compact now: its job is done' : 'Compact now', icon: 'compact', run: () => compactNow(chat.id) },
+    canCompact(chat.id) && { label: Jev.ready(s) ? 'Compact now: its job is done' : 'Compact now', icon: 'compact', run: () => compactNow(chat.id) },
+    Boolean(s && s.key) && Voice.menuItem(s.key),
     { label: state.settings.inspector ? 'Hide the panel beside it' : 'Show the panel beside it', icon: 'panel', key: 'Ctrl Shift I', run: () => setInspector(!state.settings.inspector) },
     null,
     { label: 'Close this chat', icon: 'x', key: 'Ctrl Shift W', danger: true, run: () => closeChat(chat.id) },
@@ -1702,6 +1704,9 @@ async function boot() {
   Noir.setAwake(document.hasFocus());
   applyLook(info.settings);
   Jev.take(info.jev);
+  Voice.take(info.voice);
+  // the hidden window of the self-test is never heard
+  Voice.mute(Boolean(info.hidden));
   state.before = new Map(info.snapshot.chats.map((c) => [c.key, c.state]));
   if (info.logo) $('logo').src = info.logo; else $('logo').hidden = true;
   initTips($('tip'));
@@ -1809,6 +1814,13 @@ async function boot() {
   // nobody is looking at a window that starts by the clock: from now, what happens is kept for when someone does
   if (!document.hasFocus()) Morning.leave();
   desk.onJev((v) => { Jev.take(v); Settings.jevChanged(); paint(); });
+  desk.onVoice((v) => {
+    const was = JSON.stringify(Voice.followed());
+    Voice.take(v);
+    Settings.voiceChanged();
+    // a chat picked or let go: its mark in the list
+    if (JSON.stringify(Voice.followed()) !== was) paint();
+  });
   ChatView.init($('tiles'), $('inspector'), { session: sessionOf, label: chatLabel, close: closeChat, inspector, attach, arm, disarm, resume: resumeHere, focus: setView, big: toggleBig, repo: repoMenu,
     // its globe: a press on the strip of a chat that did not have the keyboard opens its browser, else turns it
     browser: (id, wasOn) => Browser.toggleFor(id, wasOn ? undefined : true), web: (id) => Browser.of(id),
@@ -1865,12 +1877,19 @@ async function boot() {
         { kind: 'nest', title: 'The Nest', what: 'answered', body: words || 'Its answer is ready.', target: 'nest' });
     }
     else if (name === 'ask-leave') askLeave();
+    // the voice (main.cjs): a piece to say after the others, a stop, the talk key pressed in any program, a trouble
+    else if (name === 'voice-play') Voice.play(arg);
+    else if (name === 'voice-stop') Voice.stop(false);
+    else if (name === 'voice-key') Voice.key();
+    else if (name === 'voice-trouble') Voice.trouble(String(arg || ''));
     else if (name === 'reload') reloadPage();
     // the window changed screen or scaling, the computer woke, the graphics process started again: drawn from scratch
     else if (name === 'redraw') redrawNow(false);
     else if (name === 'nest') { if (arg === 'toggle') toggleNest(true); else openNest(); }
     // the floating card's own buttons changed its switches
     else if (name === 'float') { if (arg && typeof arg === 'object') { state.settings = { ...state.settings, float: arg }; floatSent = ''; paint(); } }
+    // what Windows answered about its focus lock (main.cjs leakFix): said under the switch in Settings
+    else if (name === 'leak') { if (arg && typeof arg === 'object') { state.settings = { ...state.settings, leakFix: arg }; paint(); } }
     else if (name === 'live' || name === 'seen' || name === 'away') {
       document.body.classList.toggle('live', name === 'live');
       Noir.setAwake(name === 'live');
@@ -1947,6 +1966,8 @@ async function boot() {
     else if (e.shiftKey && e.code === 'Enter') toggleBig();
     else if (!e.shiftKey && e.code === 'Comma') toggleSettings();
     else if (!e.shiftKey && e.code === 'KeyF' && state.view === 'settings') Settings.focusFind();
+    // the voice's talk key, here when another program holds it (held by Lowlit, it never reaches the page)
+    else if (e.shiftKey && e.code === 'KeyY' && Voice.usable()) Voice.key();
     else if (e.code === 'Tab') back(e.shiftKey ? -1 : 1);
     else {
       // Ctrl Shift 1 is every chat, 2 the first workspace by its tab, and so on; Ctrl 1 the first chat of the list

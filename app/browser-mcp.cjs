@@ -34,8 +34,12 @@ const INSTRUCTIONS = 'The browser built into Lowlit, the window these chats run 
   + 'The same window has a Viewer for pictures, videos and sounds on this computer (Ctrl+Shift+M): after making or finding one, call show_media to put it '
   + 'in front of the user beside this chat (two files side by side to compare, more as a grid); media_control plays, pauses, seeks or steps a video; '
   + 'media_look hands back a picture of what is shown (a video at any second), to check your own work.';
+// Said first while the voice is on (voice.cjs). Claude Code keeps the first 2,048 letters of a door's instructions:
+// these and the browser's must fit in them together.
+const VOICE_WORDS = 'Lowlit reads each chat\'s briefing out loud to the user: as your last step in every turn where you worked, call voice_brief once.';
+const INSTRUCTIONS_MAX = 2048;
 
-const tab = { type: 'string', description: 'A page by its name (t3), when not the one this chat works in. tabs lists them.' };
+const tab ={ type: 'string', description: 'A page by its name (t3), when not the one this chat works in. tabs lists them.' };
 const ref = { type: 'string', description: 'The element, by the ref the outline gave it: e12.' };
 const TOOLS = [
   { name: 'navigate', title: 'Open a page', description: 'Open a web address in this chat\'s page of the Lowlit browser (made the first time), or go "back", "forward" or "reload". Hands back the page\'s outline: what is on it, with a ref like [ref=e12] on everything that can be clicked or typed into; a long page comes back as a summary (its headings and what is on it) unless outline says otherwise. github.com and localhost:3000 are completed; D:\\folder\\page.html opens a file.',
@@ -104,6 +108,12 @@ const TOOLS = [
   { name: 'media_look', title: 'Look at what is shown', description: 'A picture of what this chat\'s Viewer shows, to look at it yourself: a picture file, the frame where a video stands (or at the second given), or the two files being compared, side by side. At most 1568 pixels on its long side.',
     inputSchema: { type: 'object', properties: { at: { type: 'number', description: 'The second of the video to look at.' }, file: { type: 'number', description: 'Only this file, by its number in the last show_media.' } } },
     annotations: { readOnlyHint: true } },
+  { name: 'voice_brief', title: 'Brief the user out loud', description: 'Hand Lowlit this chat\'s briefing: it reads it out loud when the user asks where their work stands, while they do something else. Call it once as your last step in every turn where you worked; it replaces this chat\'s last one. Write spoken words, as said to a colleague: no markdown, code, file paths, links or long numbers, every part clear when only heard.',
+    inputSchema: { type: 'object', properties: {
+      project: { type: 'string', description: 'The project as the user calls it, in one to three words.' },
+      line: { type: 'string', description: 'One short sentence: what changed in this turn.' },
+      brief: { type: 'string', description: 'The whole picture in at most 200 words: what you were asked, where the work stands, what you did and how you checked it (tests, numbers), what is half done or failing, what is not committed or pushed, and the next step.' },
+      asks: { type: 'string', description: 'Your question to the user, word for word, when you wait on one; left out otherwise.' } }, required: ['line', 'brief'] } },
 ];
 
 /** What a tool's name calls in the browser. */
@@ -114,13 +124,18 @@ const CALLS = {
 };
 /** What a tool's name calls in the Viewer (viewer.cjs). */
 const VIEWER_CALLS = { show_media: 'showTool', media_control: 'controlTool', media_look: 'lookTool' };
-const TARGETS = [['viewer', VIEWER_CALLS, 'Viewer'], ['browser', CALLS, 'browser']];
+/** What a tool's name calls in the voice: { isOn(), briefTool(drv, args) } (main.cjs, voice.cjs). */
+const VOICE_CALLS = { voice_brief: 'briefTool' };
+const TARGETS = [['viewer', VIEWER_CALLS, 'Viewer'], ['voice', VOICE_CALLS, 'voice'], ['browser', CALLS, 'browser']];
+/** What a chat is told at its start: the voice's sentence first while the voice is on. */
+const instructionsFor = (voiceOn) => (voiceOn ? `${VOICE_WORDS} ${INSTRUCTIONS}` : INSTRUCTIONS);
 
 class Door {
   /** who(pid): the chat this app knows by that program's number ({ name, key, chat, cwd }), or null. */
-  constructor({ browser, viewer, token, log, who }) {
+  constructor({ browser, viewer, voice, token, log, who }) {
     this.browser = browser;
     this.viewer = viewer || null;
+    this.voice = voice || null;
     this.token = token;
     this.log = log || (() => {});
     this.who = who || (() => null);
@@ -275,7 +290,7 @@ class Door {
           protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[1],
           capabilities: { tools: { listChanged: false } },
           serverInfo: { name: NAME, title: 'Lowlit browser', version: '1.0.0' },
-          instructions: INSTRUCTIONS,
+          instructions: instructionsFor(Boolean(this.voice && this.voice.isOn())),
         });
       }
       case 'ping': return ok({});
@@ -290,8 +305,9 @@ class Door {
     if (!kind) return { content: [{ type: 'text', text: `There is no tool ${name}.` }], isError: true };
     const target = this[kind];
     if (!target) return { content: [{ type: 'text', text: `The ${what} is not ready: Lowlit is still starting.` }], isError: true };
-    // which chat calls decides beside which chat the Viewer shows: its program is known before such a tool runs
-    if (kind === 'viewer' && !drv.pid && drv.owner) await drv.owner;
+    // which chat calls decides beside which chat the Viewer shows, and whose briefing the voice keeps: its program is
+    // known before such a tool runs
+    if ((kind === 'viewer' || kind === 'voice') && !drv.pid && drv.owner) await drv.owner;
     this.name(drv);
     try {
       const r = await target[calls[name]](drv, args);
@@ -358,4 +374,4 @@ async function unregister({ env, log = () => {} } = {}) {
   return { ok, said: ok ? '' : r.said || 'Claude Code gave no answer.' };
 }
 
-module.exports = { Door, register, unregister, listed, NAME, PORT, TOOLS };
+module.exports = { Door, register, unregister, listed, instructionsFor, NAME, PORT, TOOLS, INSTRUCTIONS_MAX };

@@ -1,5 +1,5 @@
 'use strict';
-/* global desk, h, fill, icon, kept, selectionIn, folderOf, dateTime, acctColor, planName, Parts, Side, Jev, Browser, toast */
+/* global desk, h, fill, icon, kept, selectionIn, folderOf, dateTime, acctColor, planName, Parts, Side, Jev, Browser, Voice, toast */
 // The Settings page, a page of the window like the Dashboard: its topics down the left under a search over all of
 // them, the topic picked at the right. Every change applies at once. The search keeps a row when every word typed is
 // in it, in the title of its part or in the words its topic goes by ("notifications" finds the Notes); the words found
@@ -23,6 +23,7 @@ const Settings = (() => {
     ['Ctrl Shift B', 'The Browser: the pages your chats open, beside them'],
     ['Ctrl Shift M', 'The Viewer: the pictures, videos and sounds your chats show. In it: Space plays, ← → move, F fills the window'],
     ['Ctrl Shift F', 'The floating card: the chat in front, over your other programs'],
+    ['Ctrl Shift Y', 'The voice: press, then speak. "Mise au point" for everything, a project\'s name for that project, "stop", "again", "go to" a project. From any program too, while it is on'],
     ['F5', 'Look again now (sessions, the account logged in, the limits) and draw the window again from scratch'],
     ['Ctrl ,', 'Settings, and back again'],
     ['/ or Ctrl F', 'In Settings: the search'],
@@ -51,9 +52,9 @@ const Settings = (() => {
   const EFFORTS = [['', 'Claude Code\'s'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High'], ['xhigh', 'Extra high'], ['max', 'Max']];
   // the topics down the left, in order. words: what else a person may call what is in them, for the search
   const TOPICS = [
-    { id: 'chats', name: 'Chats', icon: 'terminal', sections: ['claude', 'terminal', 'closing'],
-      lede: 'What every Claude Code chat starts with, how big its text is, and what happens to your chats when you close the window.',
-      words: 'claude code model opus sonnet fable thinking effort max terminal text size font zoom close closing quit exit keep restore reopen' },
+    { id: 'chats', name: 'Chats', icon: 'terminal', sections: ['claude', 'terminal', 'closing', 'leak'],
+      lede: 'What every Claude Code chat starts with, how big its text is, what happens to your chats when you close the window, and a Windows leak they set off.',
+      words: 'claude code model opus sonnet fable thinking effort max terminal text size font zoom close closing quit exit keep restore reopen memory leak ram slow windows focus foreground' },
     { id: 'notes', name: 'Notes', icon: 'bell', sections: ['notes', 'cards'],
       lede: 'Cards that tell you when a chat needs you, finishes, or something else happens: in this window, and over your other programs.',
       words: 'notifications notification alerts alert popups popup toasts toast messages cards corner' },
@@ -78,6 +79,9 @@ const Settings = (() => {
     { id: 'jev', name: 'Jev', icon: 'bolt', sections: ['jev'],
       lede: 'A small model that judges finished chats and sorts search, through OpenRouter. Off until you switch it on.',
       words: 'jev openrouter api key judge model search sort money cost' },
+    { id: 'voice', name: 'Voice', icon: 'volume', sections: ['voice'],
+      lede: 'Lowlit reads out the whole summary of the chats you pick each time they finish, and tells you where your work stands when you ask. Off until you switch it on.',
+      words: 'voice speak speech talk sound audio microphone mic elevenlabs read aloud out loud summary briefing mise au point say listen right click pick follow' },
     { id: 'links', name: 'Opening Lowlit', icon: 'home', sections: ['links'],
       lede: 'Shortcuts to open the app. Nothing is added until you switch it on.',
       words: 'shortcut shortcuts start menu desktop startup windows boot launch' },
@@ -509,6 +513,73 @@ const Settings = (() => {
   }
 
   /**
+   * The voice: off until switched on, with an ElevenLabs key of the person's own (locked away by main, never back here).
+   * The chats brief themselves through the door; it reads out a picked chat's briefing as it finishes, and any on asking.
+   */
+  let voiceList = null;            // the voices the key may use, once asked for: [{ id, name, own }]
+  function voiceSection() {
+    const v = Voice.view() || { on: false, hasKey: false, locked: true, follow: [], cap: 15, spent: 0, letters: 0, seconds: 0, full: false, lastError: '',
+      plan: null, voice: '', voiceName: '', keyState: 'off', keyWords: 'Ctrl Shift Y', briefs: 0 };
+    const keyInput = h('input', { class: 'input voice-key', type: 'password', maxlength: '200', spellcheck: 'false', autocomplete: 'off',
+      placeholder: v.hasKey ? 'A key is kept. Paste another to replace it' : 'Paste your ElevenLabs key', 'aria-label': 'ElevenLabs key' });
+    const ask = async (what, a, b) => {
+      const next = await desk.voice(what, a, b);
+      if (next && typeof next === 'object' && !Array.isArray(next)) Voice.take(next);
+      if (shown) draw();
+    };
+    const save = () => { const text = keyInput.value.trim(); keyInput.value = ''; voiceList = null; if (text) ask('key', text); };
+    keyInput.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') save();
+      else if (e.key === 'Escape') { keyInput.value = ''; keyInput.blur(); }
+    });
+    const money = (n) => `$${n.toFixed(n < 1 ? 4 : 2)}`;
+    const now = new Date();
+    const turn = new Date(now.getFullYear(), now.getMonth() + 1, 1).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const status = !v.on ? '' : !v.hasKey ? 'Paste a key to start.'
+      : v.full ? `This month's ${money(v.cap)} is used up: the voice stays quiet until ${turn}.`
+        : v.keyState === 'taken' ? `Another program holds ${v.keyWords}: it works only while this window is in front.`
+          : `On. Press ${v.keyWords} in any program, then speak.`;
+    const named = v.voiceName || 'the voice of ElevenLabs\' own examples';
+    const pick = voiceList && voiceList.length
+      ? h('select', { class: 'input voice-pick', 'aria-label': 'The voice', onchange: (e) => { const o = e.target.selectedOptions[0]; if (o) ask('voice', o.value, o.dataset.name); } },
+        voiceList.map((x) => h('option', { value: x.id, data: { name: x.name }, text: x.own ? `${x.name} (yours)` : x.name, selected: x.id === v.voice })))
+      : h('button', { class: 'btn sm', text: 'Choose another', onclick: async () => {
+        const list = await desk.voice('voices');
+        voiceList = Array.isArray(list) ? list : [];
+        if (!voiceList.length) toast('ElevenLabs gave no voices for this key.', 5000);
+        if (shown) draw();
+      } });
+    const p = v.plan;
+    const planWords = p ? `${p.tier ? `${p.tier[0].toUpperCase()}${p.tier.slice(1)} plan: ` : ''}${p.used.toLocaleString('en-US')} of ${p.limit.toLocaleString('en-US')} characters used this month${p.resets ? `, back to 0 on ${new Date(p.resets).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}.` : '';
+    return part('voice', 'Voice', 'off until you switch it on',
+      toggle(v.on, 'Let Lowlit talk',
+        `Right-click a chat and pick "Read it out when it finishes": each time it finishes, you hear its whole summary. Nothing is said for the other chats. ${v.keyWords} in any program, then say "mise au point" for where every chat stands (what waits for you first), a project's name for that project, "stop" to stop, "again" to hear it again, or "go to" and a project to bring it up. Press it again to stop it talking, or to end what you say early.`,
+        () => ask('on', !v.on)),
+      h('div', { class: 'set-row voice-row' }, keyInput,
+        h('button', { class: 'btn', text: 'Save', onclick: save }),
+        v.hasKey && h('button', { class: 'btn ghost', text: 'Remove the key', onclick: () => { voiceList = null; ask('key', ''); } })),
+      status && said(status),
+      v.lastError && said(v.lastError, 'voice-error'),
+      !v.locked && said('Windows cannot lock a key away on this machine right now, so none can be kept.', 'voice-error'),
+      v.on && state.settings.browser && state.settings.browser.on === false && said('Your chats cannot brief while "Let your chats use the browser" is off (Browser): its door is how they reach Lowlit.', 'voice-error'),
+      v.on && said(`Chats read out when they finish: ${(v.follow || []).length || 'none'}. A small speaker marks them in the list; the same right-click lets one go.`),
+      v.on && v.hasKey && h('div', { class: 'set-row' },
+        h('div', { class: 'what' }, h('div', { text: 'The voice' }), h('div', { class: 'quiet', text: `Now: ${named}.` })),
+        pick, h('button', { class: 'btn sm', text: 'Hear it', onclick: () => ask('hear-it') })),
+      v.on && v.hasKey && h('div', { class: 'set-row' },
+        h('div', { class: 'what' }, h('div', { text: 'Try it without the microphone' }), h('div', { class: 'quiet', text: 'What the key and "mise au point" would say now.' })),
+        h('button', { class: 'btn sm', text: 'Mise au point now', onclick: () => ask('brief', '') })),
+      v.on && v.hasKey && h('div', { class: 'set-row' },
+        h('div', { class: 'what' }, h('div', { text: 'Your ElevenLabs plan' }), h('div', { class: 'quiet', text: planWords || 'How much of it this month has used, as ElevenLabs counts it.' })),
+        h('button', { class: 'btn sm', text: 'Check my plan', onclick: () => ask('plan') })),
+      said(`Spending stops at ${money(v.cap)} a month at ElevenLabs' list price, whatever your plan covers. This month: ${money(v.spent || 0)}, ${(v.letters || 0).toLocaleString('en-US')} letters said, ${v.seconds || 0} seconds heard. A minute of speech, about a mise au point of one project, is about 4 cents at that price.`),
+      said(`How the chats brief: while the voice is on, every chat started from then on is told to leave a summary at the end of each turn where it worked, through Lowlit's own tool door (the Browser's). A chat started before that does not know to: a new chat does. A turn without a new summary (a short answer) is not read out. ${v.briefs || 0} summar${v.briefs === 1 ? 'y' : 'ies'} kept.`),
+      said('What leaves this computer, only while it is on: the words it says (the summaries of the chats you picked, and what you ask for) and what the microphone hears between your press of the key and the end of your sentence. They go to ElevenLabs, which keeps them in its logs unless your plan is Enterprise. The summaries stay on this computer, in Lowlit\'s own folder, keys and passwords taken out.'),
+      said('Your key is locked by Windows for your user on this computer. It is never shown again and never written to a log.'));
+  }
+
+  /**
    * The work clock: on or off, the usual shifts (a name, the time it starts, how many hours), and whether ActivityWatch
    * is read for the programs. Under a main from before the clock: no part.
    */
@@ -556,6 +627,27 @@ const Settings = (() => {
       said('Kept on this computer, in Lowlit\'s own folder: your countdowns, the stretches at the computer, and the time each chat was in front while this window had the keyboard. Never sent anywhere.'));
   }
 
+  /** Windows' focus lock (main.cjs leakFix): held at 0 by Lowlit, or left to Windows, and what Windows said last. */
+  function leakSection() {
+    const l = state.settings.leakFix || { on: false, now: null, asking: false };
+    return part('leak', 'Windows memory leak', 'Windows 11',
+      toggle(l.on, 'Stop the leak', 'Windows 11 keeps a little memory, until you restart, for each program that starts another one while its focus lock holds (the lock that keeps other programs from coming in front of what you are typing in). Your chats start thousands a day: gigabytes a day, and every program starts more slowly. On: Lowlit sets the focus lock to 0 when it opens and when you click into it, and nothing is kept. The cost: another program may come in front of this window by itself.',
+        () => set({ leakFix: !l.on })),
+      said(leakWords(l)));
+  }
+  const lockTime = (ms) => (ms >= 86400000 ? `${(ms / 86400000).toFixed(1)} days` : ms >= 3600000 ? `${(ms / 3600000).toFixed(1)} hours`
+    : ms >= 600000 ? `${Math.round(ms / 60000)} minutes` : `${Math.round(ms / 1000)} seconds`);
+  function leakWords(l) {
+    const n = l.now;
+    if (l.asking) return 'Asking Windows…';
+    if (!n) return l.on ? 'Windows is asked the next time this window comes in front.' : 'Windows keeps its own setting.';
+    const at = new Date(n.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (n.failed) return `Windows could not be asked at ${at}: ${n.failed}`;
+    if (n.error) return `At ${at} Windows kept its focus lock at ${lockTime(n.after)}: it takes the change only from the window in front. Asked again when you next click into this window.`;
+    if (n.after === 0) return `Stopped since ${at}: the focus lock is 0.`;
+    return `Since ${at} the focus lock is ${lockTime(n.after)}, your Windows setting${n.after > 3600000 ? ': the leak goes on' : ''}.`;
+  }
+
   function linksSection() {
     const links = state.settings.links || {};
     return part('links', 'Ways to open Lowlit', 'nothing is added until you switch it on',
@@ -573,15 +665,17 @@ const Settings = (() => {
     return part('reads', 'What this app reads', '',
       said('The files Claude Code and Codex write on this machine: which sessions are running, their transcripts and their subagents, and what Claude Code hands your status line (that is where the usage limits, the cost and the cache come from).'),
       said('Claude Code hands the usage limits only to a status line command. Lowlit\'s own (app/statusline.cjs) keeps the last figures in %LOCALAPPDATA%\\AgentFocus\\statusline.json once one line in ~/.claude/settings.json turns it on ("Usage limits" in the README). It runs on this computer and sends nothing.'),
-      said("To tell your accounts apart it reads the name on the account that is logged in (its email, its plan, its id) from Claude Code's settings file, and when you typed /login. It never opens the file that holds the key to an account, it cannot log in, log out or switch, and it never talks to Anthropic. The chats are the real programs, running in real terminals. Nothing leaves this computer unless you switch Jev on, or a page is opened in the Browser."),
+      said("To tell your accounts apart it reads the name on the account that is logged in (its email, its plan, its id) from Claude Code's settings file, and when you typed /login. It never opens the file that holds the key to an account, it cannot log in, log out or switch, and it never talks to Anthropic. The chats are the real programs, running in real terminals. Nothing leaves this computer unless you switch Jev or the voice on, or a page is opened in the Browser."),
       said('To show what each session holds on this computer it asks Windows for the programs running under your sessions: their names, the RAM they hold, the processor time they used and the ports they listen on. Every 4 seconds while this window is in front, every 30 seconds otherwise. To tell an MCP server or a dev server from any other program it looks once at how that program was started, and keeps a short name only: never the line itself.'),
-      said('The Browser opens the web pages your chats, or you, ask for, as any browser does: those sites see a visit from this computer, and only what the page asks for goes to them.'));
+      said('The Browser opens the web pages your chats, or you, ask for, as any browser does: those sites see a visit from this computer, and only what the page asks for goes to them.'),
+      said('With the voice on (Voice), the words it says and what the microphone hears after you press its key go to ElevenLabs. The microphone is never open at any other time.'),
+      said('With "Stop the leak" on (Chats) it changes one Windows setting, the focus lock, to 0 when it opens and when you click into it. Windows sets its own again each time you sign in, and switching it off puts your setting back at once.'));
   }
 
   /** What the page is drawn from: the settings, the accounts, Jev and the Browser's place in Claude Code. */
   function stampNow() {
     const v = Parts.acctView(state);
-    return JSON.stringify([state.settings, v.list.map((a) => [a.key, a.email, a.plan, a.here, a.to]), Jev.view(), Browser.can() && Browser.door()]);
+    return JSON.stringify([state.settings, v.list.map((a) => [a.key, a.email, a.plan, a.here, a.to]), Jev.view(), Voice.view(), Browser.can() && Browser.door()]);
   }
 
   /** Every topic drawn again whole; the keyboard stays where it was (the same field or button of the same part). */
@@ -590,9 +684,9 @@ const Settings = (() => {
     const sec = was && main.contains(was) ? was.closest('section[data-section]') : null;
     const spot = sec ? { id: sec.dataset.section, i: [...sec.querySelectorAll(FOCUSABLE)].indexOf(was) } : null;
     const parts = {
-      claude: claudeSection(), terminal: terminalSection(), closing: closingSection(), notes: notesSection(), cards: cornerSection(),
+      claude: claudeSection(), terminal: terminalSection(), closing: closingSection(), leak: leakSection(), notes: notesSection(), cards: cornerSection(),
       look: lookSection(), float: floatSection(), spaces: spacesSection(), accounts: accountsSection(), work: workSection(),
-      record: recordSection(), nest: nestSection(), browser: browserSection(), jev: jevSection(), links: linksSection(), keys: keysSection(), reads: readsSection(),
+      record: recordSection(), nest: nestSection(), browser: browserSection(), jev: jevSection(), voice: voiceSection(), links: linksSection(), keys: keysSection(), reads: readsSection(),
     };
     fill(main, TOPICS.map((t) => {
       const kids = t.sections.map((id) => parts[id]).filter(Boolean);
@@ -781,6 +875,6 @@ const Settings = (() => {
     return false;
   }
 
-  return { init, open, close, show, render, key, focusFind, isOpen, jevChanged: render, browserChanged: render,
+  return { init, open, close, show, render, key, focusFind, isOpen, jevChanged: render, voiceChanged: render, browserChanged: render,
     topics: () => TOPICS.map((t) => ({ id: t.id, name: t.name, icon: t.icon, words: t.words })) };
 })();

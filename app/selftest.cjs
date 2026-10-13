@@ -776,7 +776,7 @@ function pageDress(id, kind) {
   return lines.length;
 }
 
-module.exports = async function selfTest({ app, win, dir, engine, chats, watch, writeLink, keptOf, restoreMode, lastEnd, jobLives, serversComeBack, planChat, claudeFlags, settingsNow, trayEnd, reload, code, pathTest, resetNotes, find, record, jev, servers, nest, browser, keeper, float, screens, viewer, work, gaming, notes: noteCards }) {
+module.exports = async function selfTest({ app, win, dir, engine, chats, watch, writeLink, keptOf, restoreMode, lastEnd, jobLives, serversComeBack, planChat, claudeFlags, settingsNow, trayEnd, reload, code, pathTest, resetNotes, find, record, jev, voice, servers, nest, browser, keeper, float, screens, viewer, work, gaming, notes: noteCards }) {
   fs.mkdirSync(dir, { recursive: true });
   const lines = [];
   const notes = { engine };
@@ -2572,6 +2572,21 @@ module.exports = async function selfTest({ app, win, dir, engine, chats, watch, 
     await flip('See-through window');
     const glassBack = await until(async () => saved().solid !== true, 4000, 200);
     check('the see-through window is on unless it is switched off in Settings, and the choice is kept for the next start', glassWas && Boolean(solid) && !glassOff && Boolean(glassBack));
+    // the switch for Windows' leak, both ways: a test run is answered for Windows (main.cjs leakAsk), whose own setting
+    // it never changes
+    const leakWas = await switchOf('Stop the leak');
+    const leakSaid = () => inPage(() => { const p = document.querySelector('#settings section[data-section="leak"] > p.quiet'); return p ? p.textContent : ''; });
+    const leakStopped = /^Stopped since .+: the focus lock is 0\.$/;
+    const leakOwn = /^Since .+ the focus lock is 200 seconds, your Windows setting\.$/;
+    const leakAnswer = (want) => until(async () => { const t = await leakSaid(); return want.test(t) ? t : ''; }, 4000, 200);
+    await flip('Stop the leak');
+    const leakKept = await until(async () => saved().leakFix === !leakWas, 4000, 200);
+    const leakOne = await leakAnswer(leakWas ? leakOwn : leakStopped);
+    await flip('Stop the leak');
+    const leakBack = await until(async () => saved().leakFix === leakWas, 4000, 200);
+    const leakTwo = await leakAnswer(leakWas ? leakStopped : leakOwn);
+    check('the switch for the Windows leak is kept for the next start, and says under it what Windows answered, each way',
+      Boolean(leakKept) && Boolean(leakBack) && Boolean(leakOne) && Boolean(leakTwo), JSON.stringify({ leakWas, leakOne, leakTwo }));
     // a name typed for an account is kept, and used wherever the account shows
     await inPage(() => { const i = document.querySelector('#settings .acct-row .name-input'); i.value = 'Main account'; i.dispatchEvent(new Event('blur')); return true; });
     const named = await until(async () => saved().accountNames && saved().accountNames.aaaa1111 === 'Main account', 4000, 200);
@@ -2579,7 +2594,7 @@ module.exports = async function selfTest({ app, win, dir, engine, chats, watch, 
     check('an account can be given a name, which is kept and shown in its place', panel.accounts === 4 && Boolean(named) && calledAs === 'Main account', `${panel.accounts} accounts listed; the sidebar now says "${calledAs}"`);
     await exec('Settings.open("chats")');
     await shoot('0-settings');
-    check('Settings opens, and a switch flipped there is written down', panel.open && panel.switches === 22 && panel.keys >= 12 && panel.on >= 3 && Boolean(written), JSON.stringify(panel));
+    check('Settings opens, and a switch flipped there is written down', panel.open && panel.switches === 24 && panel.keys >= 12 && panel.on >= 3 && Boolean(written), JSON.stringify(panel));
     await flip('When a chat in this window finishes its turn');
     await wait(300);
     // the search: the rows of every topic that hold the words, under their topic's name, the words marked; Enter goes to the first
@@ -6083,6 +6098,41 @@ module.exports = async function selfTest({ app, win, dir, engine, chats, watch, 
         const b = document.querySelector(`#tiles .tile[data-id="${id}"] .th-repo .rp-branch`);
         return Boolean(b) && b.textContent === 'demo-branch';
       }, chat));
+      // where each text's letters stand: a box of no size put at the end of its words sits on their baseline
+      const lined = await inPage((id) => {
+        const st = Desk.state;
+        const was = st.snap;
+        const now = Date.now();
+        st.snap = { ...was, at: was.at + 1, chats: was.chats.map((c) => (c.chat === id
+          ? { ...c, state: 'working', since: now - 65000, turn: { start: now - 65000, end: 0 }, doing: { name: 'Agent', what: 'Made-up check' } } : c)) };
+        Desk.paint();
+        const head = document.querySelector(`#tiles .tile[data-id="${id}"] .tile-head`);
+        // the timer's figure is written by the clock's tick
+        if (head) Parts.tick(head, Date.now());
+        const base = (sel) => {
+          const el = head && head.querySelector(sel);
+          if (!el || !el.getClientRects().length) return null;
+          const probe = document.createElement('span');
+          probe.style.cssText = 'display: inline-block; width: 0; height: 0; vertical-align: baseline';
+          el.append(probe);
+          const y = probe.getBoundingClientRect().top;
+          probe.remove();
+          return y;
+        };
+        const tall = (sel) => { const el = head && head.querySelector(sel); return el ? el.getBoundingClientRect().height : 0; };
+        const out = { name: base('.th-name'), project: base('.rp-name'), branch: base('.rp-branch'), state: base('.th-doing .words'), timer: base('.th-doing .timer'),
+          top: head ? head.getBoundingClientRect().top : 0, strip: head ? head.getBoundingClientRect().height : 0, nameBox: tall('.th-name'), repoBox: tall('.th-repo'),
+          words: (head && head.querySelector('.th-doing .words') || {}).textContent || '' };
+        st.snap = was;
+        Desk.paint();
+        return out;
+      }, chat);
+      const lines = [lined.name, lined.project, lined.branch, lined.state, lined.timer];
+      check('the strip\'s name, project, branch, what it is doing and its timer stand on one baseline, in the middle of the strip; the name\'s box as tall as the project\'s',
+        lines.every((y) => typeof y === 'number') && lines.every((y) => Math.abs(y - lined.name) < 0.02) && lined.words === 'Agent · Made-up check'
+          && lined.name - lined.top > 19 && lined.name - lined.top < 24 && lined.strip === 36 && lined.nameBox === lined.repoBox,
+        JSON.stringify({ ...Object.fromEntries(Object.entries(lined).filter(([k]) => ['name', 'project', 'branch', 'state', 'timer'].includes(k))
+          .map(([k, y]) => [k, typeof y === 'number' ? Math.round((y - lined.top) * 64) / 64 : y])), boxes: [lined.nameBox, lined.repoBox], strip: lined.strip }));
     } finally {
       try {
         if (installed) await inPage((id) => {
@@ -9136,17 +9186,17 @@ window.framesSeen = function () { return frames; };
         noKey.status === 401 && badKey.status === 401 && fromPage.status === 403 && otherHost.status === 403 && asGet.status === 405 && asText.status === 415 && elsewhere.status === 404,
         JSON.stringify([noKey.status, badKey.status, fromPage.status, otherHost.status, asGet.status, asText.status, elsewhere.status]));
 
-      // 2. Claude Code connects: a session of its own, the protocol it asked for, the 26 tools (the Viewer's three among them)
+      // 2. Claude Code connects: a session of its own, the protocol it asked for, the 27 tools (the Viewer's three and the voice's one among them)
       const a = await connect();
       names.set(a.sid, { name: 'Made-up research', key: '', chat: 'made-up-a' });
       const init = a.json && a.json.result;
       const listed = await post({ jsonrpc: '2.0', id: ++rpc, method: 'tools/list' }, { sid: a.sid });
       const tools = listed.json && listed.json.result ? listed.json.result.tools.map((t) => t.name) : [];
       const want = ['navigate', 'snapshot', 'click', 'type', 'press_key', 'select_option', 'hover', 'scroll', 'screenshot', 'tabs', 'wait_for', 'evaluate', 'console', 'dialog', 'upload_file',
-        'save_field', 'fill_field', 'form_preview', 'show', 'resize', 'look', 'network', 'record', 'show_media', 'media_control', 'media_look'];
+        'save_field', 'fill_field', 'form_preview', 'show', 'resize', 'look', 'network', 'record', 'show_media', 'media_control', 'media_look', 'voice_brief'];
       const unknown = await post({ jsonrpc: '2.0', id: ++rpc, method: 'made/up' }, { sid: a.sid });
       const noTool = await call(a.sid, 'made_up');
-      check('Claude Code connects: it gets a session, the protocol version it asked for, the browser\'s name and how to use it (the clipboard left alone, the ask-first list), and the 26 tools; anything else is refused in words',
+      check('Claude Code connects: it gets a session, the protocol version it asked for, the browser\'s name and how to use it (the clipboard left alone, the ask-first list), and the 27 tools; anything else is refused in words',
         a.status === 200 && /^[0-9a-f-]{36}$/.test(a.sid) && Boolean(init) && init.protocolVersion === '2025-06-18' && init.serverInfo.name === 'lowlit-browser' && /Prefer it to Claude in Chrome/.test(init.instructions)
         && /save_field and fill_field, never through the clipboard/.test(init.instructions) && /ask-first list/.test(init.instructions)
         && same(tools, want) && listed.json.result.tools.every((t) => t.inputSchema && t.inputSchema.type === 'object' && t.description && !/\b(he|him|his)\b/.test(t.description))
@@ -11186,6 +11236,34 @@ window.framesSeen = function () { return frames; };
     check('Chromium may not block the page from the graphics chip after a crash: switched off before the app was ready',
       Boolean(screens.gpuUnblocked && screens.gpuUnblocked()));
 
+    // 3b. no graphics chip to be had at all, as Chromium does for the rest of the session after three crashes close
+    //     together (his window, 8 Oct 2026 12:06): the light stands still, worked out by the processor, until the chip
+    //     can be had again (made up in the page: the page's canvases are refused WebGL for a while)
+    const chipTones = await exec('(() => { Noir.drawNow(); const s = Noir.sample(); return s && { lit: s.lit, mean: s.mean }; })()');
+    check('the light\'s graphics context taken away a third time', await lose());
+    await exec(`(() => {
+      const own = HTMLCanvasElement.prototype.getContext;
+      window.__ownGetContext = own;
+      HTMLCanvasElement.prototype.getContext = function (kind, ...rest) { return /webgl/i.test(String(kind)) ? null : own.call(this, kind, ...rest); };
+      return true;
+    })()`);
+    const stillShown = await until(() => exec(`(() => {
+      const c = document.querySelector('canvas.noir-still');
+      return Boolean(c) && Noir.state().flat && getComputedStyle(c).display !== 'none' && c.width > 0;
+    })()`), 12000, 300);
+    const flatTones = await exec('(() => { const s = Noir.sample(); return s && { lit: s.lit, mean: s.mean }; })()');
+    const refused = await noir();
+    say(`      refused: the chip's ${JSON.stringify(chipTones)}, the processor's ${JSON.stringify(flatTones)} ${JSON.stringify(refused)}`);
+    check('with no graphics chip to be had, the light stands still, drawn by the processor and lit like the chip\'s',
+      Boolean(stillShown) && Boolean(chipTones) && Boolean(flatTones) && flatTones.lit > 0.005
+        && Math.abs(flatTones.lit - chipTones.lit) <= Math.max(0.005, chipTones.lit * 0.25) && Math.abs(flatTones.mean - chipTones.mean) < 0.01,
+      JSON.stringify({ stillShown, chipTones, flatTones, noir: refused }));
+    await exec('HTMLCanvasElement.prototype.getContext = window.__ownGetContext; true');
+    const chipBack = await until(drawing, 25000, 300);
+    const afterRefused = await exec('(() => ({ flat: Noir.state().flat, still: document.querySelectorAll("canvas.noir-still").length, canvases: document.querySelectorAll("canvas.noir").length }))()');
+    check('once the chip can be had again, the moving light is back on one canvas and the still picture gone',
+      Boolean(chipBack) && !afterRefused.flat && afterRefused.still === 0 && afterRefused.canvases === 1, JSON.stringify({ chipBack, ...afterRefused }));
+
     // 4. this run's own graphics process ends, as his did at 15:17
     const gone = new Promise((done) => {
       const seen = (_e, d) => { if (d && d.type === 'GPU') { app.removeListener('child-process-gone', seen); done(d); } };
@@ -11609,6 +11687,341 @@ window.framesSeen = function () { return frames; };
     w.changed();
   };
 
+  // The voice (voice.cjs, main.cjs, voice.js) with a made-up ElevenLabs: nothing leaves this computer, no key of the
+  // person's is used, nothing is heard on the speakers (the window is muted) and the microphone is never opened: what it
+  // would have heard reaches main as made-up bytes. The chats are made-up rows, taken as the watcher's picture; one is
+  // also put in the window's list, for its right-click menu.
+  const voicePhase = async () => {
+    const http = require('node:http');
+    const { instructionsFor, INSTRUCTIONS_MAX } = require('./browser-mcp.cjs');
+    if (!voice || !browser || !noteCards) throw new Error('This run has no voice, browser or notes hooks.');
+    check('the window loads for the voice checks', Boolean(await until(() => exec('typeof Voice === "object" && typeof Desk === "object" && Desk !== null'), 15000)));
+    const door = await until(() => { const d = browser.door(); return d && d.port ? d : null; }, 15000);
+    if (!door) throw new Error('The door did not open.');
+    watch.post({ type: 'pace', ms: 600000 });
+    await wait(700);
+    const KEY = 'sk_made_up_voice_key_00000000000000000000000000000000000';
+    const LEAK = 'sk-or-v1-made-up-voice-leak-000000000000000000';
+    // a tenth of a second of quiet, as a WAV: the window plays it as it would ElevenLabs' speech
+    const wav = (() => {
+      const n = 960;
+      const b = Buffer.alloc(44 + n * 2);
+      b.write('RIFF', 0); b.writeUInt32LE(36 + n * 2, 4); b.write('WAVE', 8); b.write('fmt ', 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22);
+      b.writeUInt32LE(8000, 24); b.writeUInt32LE(16000, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write('data', 36); b.writeUInt32LE(n * 2, 40);
+      return b;
+    })();
+    const asked = [];
+    let hearing = '';
+    let refuse = 0;
+    voice.stub((url, req) => {
+      asked.push({ url, method: req.method, key: req.headers['xi-api-key'] || '', body: req.body });
+      if (refuse) return { status: refuse, buffer: null, json: { detail: { status: 'invalid_api_key', message: 'made-up refusal' } } };
+      if (url.includes('/v1/text-to-speech/')) return { status: 200, buffer: wav, json: null };
+      if (url.includes('/v1/speech-to-text')) return { status: 200, buffer: null, json: { text: hearing } };
+      if (url.includes('/v2/voices')) return { status: 200, buffer: null, json: { voices: [{ voice_id: 'MadeUpVoice001', name: 'Made-up Ada', category: 'premade' }, { voice_id: 'MadeUpVoice002', name: 'Made-up Own', category: 'cloned' }] } };
+      if (url.includes('/v1/user/subscription')) return { status: 200, buffer: null, json: { tier: 'creator', character_count: 1200, character_limit: 121000, next_character_count_reset_unix: Math.round(Date.now() / 1000) + 20 * 86400 } };
+      return { status: 404, buffer: null, json: null };
+    });
+    const speech = () => asked.filter((x) => x.url.includes('/v1/text-to-speech/'));
+    const settle = async () => { await voice.idle(); await wait(400); };
+    const did = () => inPage(() => Voice.did());
+    const playedWords = () => voice.played().map((p) => p.words);
+    const hadFile = fs.existsSync(voice.file());
+    // Claude Code's side of the door, as the browser's checks talk to it
+    const token = browser.token();
+    const post = (body, sid = '') => new Promise((done, fail) => {
+      const text = JSON.stringify(body);
+      const req = http.request({ host: '127.0.0.1', port: door.port, path: '/mcp', method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream',
+        'Content-Length': Buffer.byteLength(text), Authorization: `Bearer ${token}`, ...(sid ? { 'Mcp-Session-Id': sid } : {}) } }, (res) => {
+        const parts = [];
+        res.on('data', (c) => parts.push(c));
+        res.on('end', () => {
+          let json = null;
+          try { json = JSON.parse(Buffer.concat(parts).toString('utf8')); } catch { json = null; }
+          done({ status: res.statusCode, sid: String(res.headers['mcp-session-id'] || ''), json });
+        });
+      });
+      req.on('error', fail);
+      req.end(text);
+    });
+    let rpc = 0;
+    const connect = async () => {
+      const r = await post({ jsonrpc: '2.0', id: ++rpc, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'made-up-claude-code', version: '0' } } });
+      await post({ jsonrpc: '2.0', method: 'notifications/initialized' }, r.sid);
+      return { sid: r.sid, told: r.json && r.json.result ? r.json.result.instructions : '' };
+    };
+    const call = async (sid, name, args) => {
+      const r = await post({ jsonrpc: '2.0', id: ++rpc, method: 'tools/call', params: { name, arguments: args } }, sid);
+      const res = r.json && r.json.result;
+      return { error: Boolean(res && res.isError), text: res ? res.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n') : '' };
+    };
+    const names = new Map();
+    browser.who((_pid, drv) => (drv && names.has(drv.sid) ? names.get(drv.sid) : null));
+    const K = (n) => `22222222-3333-4444-8555-6666666666${String(n).padStart(2, '0')}`;
+    const [A, B, C] = [1, 2, 3].map(K);
+    const SHOP = 'D:\\made-up\\atlas-shop';
+    const ORBIT = 'D:\\made-up\\orbit';
+    const latestBefore = watch.latest();
+    // the made-up chats, in the states given: two in this window, one in a terminal elsewhere; nothing else
+    const show = (states) => noteCards.track({ ...latestBefore, at: Date.now(), ended: [], drives: [], chats: [
+      { key: A, session: A, kind: 'cli', pid: 0, chat: 'voice-made-up-1', cwd: SHOP, title: 'Made-up checkout', name: 'made-up-checkout', state: states[0], at: Date.now(), since: Date.now(), words: '' },
+      { key: B, session: B, kind: 'cli', pid: 0, chat: 'voice-made-up-2', cwd: ORBIT, title: 'Made-up login', name: 'made-up-login', state: states[1], at: Date.now(), since: Date.now(), words: '' },
+      { key: C, session: C, kind: 'cli', pid: 4242, chat: '', cwd: 'D:\\made-up\\made_up-tool', title: 'Made-up tool', name: 'made-up-tool', state: states[2], at: Date.now(), since: Date.now(), words: '' }] });
+    try {
+      // 1. off and without a key, as it starts; a key pasted is locked away
+      check('the voice starts switched off and without a key; a hidden test window holds no talk key', !hadFile && !voice.view().on && !voice.view().hasKey && voice.keyState() === 'off');
+      await inPage(() => Desk.Settings.open('voice'));
+      await drawn();
+      const offPart = await inPage(() => ({ all: document.querySelectorAll('#settings .switch').length, mine: document.querySelectorAll('#settings section[data-section="voice"] .switch').length }));
+      await inPage(() => Desk.Settings.close());
+      check('off, the voice\'s part of Settings has its one switch: 24 in all, as the states area counts them', offPart.mine === 1 && offPart.all === 24, JSON.stringify(offPart));
+      voice.key(KEY);
+      voice.flush();
+      await wait(300);
+      check('a pasted key is locked away: never in what the window is told, never in plain text on disk', voice.view().hasKey && !JSON.stringify(voice.view()).includes(KEY)
+        && !fs.readFileSync(voice.file(), 'utf8').includes(KEY) && !(await inPage((k) => JSON.stringify(Voice.view() || {}).includes(k), KEY)));
+
+      // 2. the door's 27th tool; while the voice is off, a chat is not told to brief and a briefing is not kept
+      const a = await connect();
+      names.set(a.sid, { name: 'Made-up checkout', key: A, chat: 'voice-made-up-1', cwd: SHOP });
+      const listed = await post({ jsonrpc: '2.0', id: ++rpc, method: 'tools/list' }, a.sid);
+      const tool = listed.json && listed.json.result ? listed.json.result.tools.find((t) => t.name === 'voice_brief') : null;
+      const offSaid = await call(a.sid, 'voice_brief', { project: 'Atlas', line: 'A made-up line.', brief: 'A made-up brief.' });
+      const toolCount = listed.json && listed.json.result ? listed.json.result.tools.length : 0;
+      check('the door offers voice_brief, its 27th tool; while the voice is off a chat is not told to brief, and a briefing it sends is not kept',
+        Boolean(tool) && toolCount === 27 && same(tool.inputSchema.required, ['line', 'brief']) && a.told === instructionsFor(false) && /voice is off/.test(offSaid.text) && voice.view().briefs === 0,
+        JSON.stringify({ tool: Boolean(tool), tools: toolCount, off: offSaid.text.slice(0, 60) }));
+
+      // 3. on: a chat started from then on is told first, and the browser's instructions still fit whole
+      voice.on(true);
+      const b = await connect();
+      check('switched on, a chat started from then on is told first to brief through voice_brief, and the browser\'s own instructions still fit whole in the 2,048 letters Claude Code keeps',
+        b.told === instructionsFor(true) && b.told.startsWith('Lowlit reads each chat\'s briefing out loud') && b.told.length <= INSTRUCTIONS_MAX && b.told.endsWith(instructionsFor(false)),
+        `${b.told.length} letters`);
+
+      // 4. briefings through the door: words fit to be heard, keys taken out, one per chat; a caller it cannot tell is refused
+      names.set(b.sid, { name: 'Made-up checkout', key: A, chat: 'voice-made-up-1', cwd: SHOP });
+      const briefA = { project: 'Atlas', line: 'The **made-up checkout** works now.',
+        brief: `The made-up checkout works. I ran 42 made-up tests and all pass. The made-up key ${LEAK} is set in the made-up settings. Not pushed yet: two made-up commits wait. Next, the made-up receipt page, about an hour. Then the made-up emails, once the receipt page is checked on a phone and a laptop.`,
+        asks: 'Shall I push the two made-up commits?' };
+      const keptA = await call(b.sid, 'voice_brief', briefA);
+      const c2 = await connect();
+      names.set(c2.sid, { name: 'Made-up login', key: B, chat: 'voice-made-up-2', cwd: ORBIT });
+      await call(c2.sid, 'voice_brief', { project: 'Orbit', line: 'The made-up login page is done.', brief: 'The made-up login page is done and checked on a phone.' });
+      const c3 = await connect();
+      const nobody = await call(c3.sid, 'voice_brief', { line: 'A made-up line.', brief: 'A made-up brief.' });
+      check('a chat\'s briefing is kept by the chat it comes from; one Lowlit cannot tell apart is refused', /^Kept/.test(keptA.text) && !keptA.error
+        && /could not tell which chat/.test(nobody.text) && voice.view().briefs === 2, JSON.stringify([keptA.text.slice(0, 40), nobody.text.slice(0, 50), voice.view().briefs]));
+      show(['idle', 'attention', 'working']);
+      const all = voice.compose('');
+      const one = voice.compose('Atlas');
+      check('a mise au point of everything says first what waits for you, each in full with its question, then what still works; no markdown, no key',
+        all.startsWith('Orbit needs you. The made-up login page is done and checked on a phone. Atlas needs you. The made-up checkout works.')
+        && all.includes('It asks: Shall I push the two made-up commits?') && all.endsWith('made up tool is still working.')
+        && !all.includes(LEAK) && all.includes('[hidden]') && !all.includes('**'), all.length > 400 ? `${all.slice(0, 200)}…` : all);
+      check('a mise au point of one project: its briefing, then its question word for word', one.startsWith('Atlas. The made-up checkout works.') && one.endsWith('It asks: Shall I push the two made-up commits?'),
+        one.slice(0, 80));
+
+      // 5. a chat picked from its right-click menu reads out its whole summary each time it finishes; no other chat says anything
+      voice.inTest(true);
+      voice.clear();
+      const before5 = speech().length;
+      const turn = async (args) => {
+        show(['working', 'attention', 'working']);
+        await wait(20);
+        if (args) await call(b.sid, 'voice_brief', args);
+        show(['idle', 'attention', 'working']);
+      };
+      await turn({ project: 'Atlas', line: 'The made-up cart is done.', brief: 'The made-up cart is done and checked. Nobody picked this chat, so this is not read out.' });
+      await settle();
+      check('a chat nobody picked says nothing when it finishes, summary or not: nothing is asked of ElevenLabs', voice.played().length === 0 && speech().length === before5,
+        JSON.stringify(playedWords()));
+      // A in the window's list, as a session running elsewhere, for its right-click menu; the watcher's own pictures wait meanwhile
+      const at5 = Date.now();
+      await inPage((r) => {
+        if (!window.voiceSnapSaved) window.voiceSnapSaved = { snap: Desk.state.snap, frozen: Desk.state.frozen };
+        Desk.state.frozen = true;
+        const was = window.voiceSnapSaved.snap;
+        takeSnapshot({ ...was, at: Date.now(), chats: [...was.chats.filter((c) => c.key !== r.key), r] });
+        Desk.paint();
+        return true;
+      }, { key: A, session: A, provider: 'claude', kind: 'interactive', pid: 0, chat: '', cwd: SHOP, title: 'Made-up checkout', name: 'made-up-checkout', prompt: '', words: '',
+        state: 'idle', at: at5, since: at5 - 60000, started: at5 - 600000, agents: { total: 0, running: 0, list: [] }, tokens: {}, files: { count: 0, names: [] } });
+      const rowOfA = `#chat-list .nav-item.chat[data-key="${A}"]`;
+      const READ = 'Read it out when it finishes';
+      const menuOfA = async () => {
+        await drawn();
+        const opened = await inPage(pageRightClick, rowOfA);
+        return opened ? inPage(pageMenu) : null;
+      };
+      const closeMenu = () => inPage(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true; });
+      const toastNow = () => inPage(() => { const t = document.getElementById('toast'); return t && !t.hidden ? t.textContent : ''; });
+      const marked = () => inPage((sel) => Boolean(document.querySelector(`${sel} .row-voice`)), rowOfA);
+      const m1 = await menuOfA();
+      const offered = m1 ? m1.items.find((i) => i.label === READ) : null;
+      const ran = Boolean(offered) && await inPage(pageMenuRun, READ);
+      const picked5 = await until(() => voice.view().follow.includes(A), 4000);
+      const toasted = await until(async () => { const t = await toastNow(); return t.includes('reads out its whole summary') ? t : null; }, 3000);
+      const markOn = await until(() => marked(), 3000);
+      const m2 = await menuOfA();
+      await closeMenu();
+      const ticked = m2 ? m2.items.find((i) => i.label === READ) : null;
+      check('a chat\'s right-click menu in the list offers "Read it out when it finishes": picked, it is ticked, a small speaker marks its row, and main keeps it by its session',
+        Boolean(offered) && !offered.ticked && ran && Boolean(picked5) && Boolean(toasted) && Boolean(markOn) && Boolean(ticked) && ticked.ticked
+        && Boolean(await inPage((k) => Voice.follows(k), A)), JSON.stringify({ menu: m1 && m1.items.map((i) => i.label), ticked: ticked && ticked.ticked, mark: Boolean(markOn), toast: toasted }));
+      const BRIEF5 = 'The made-up checkout now takes cards and made-up vouchers. I ran 64 made-up tests: 63 pass, and the one about made-up refunds fails because the made-up bank answers late. '
+        + 'Two made-up commits are not pushed. Half done: the made-up receipt page has its layout but not its numbers. Next, the made-up refunds test, about twenty minutes, then the receipt page on a phone and a laptop.';
+      const ASKS5 = 'Shall I push the two made-up commits and start on the refunds?';
+      voice.clear();
+      const from5 = speech().length;
+      await turn({ project: 'Atlas', line: 'The made-up checkout takes vouchers now.', brief: BRIEF5, asks: ASKS5 });
+      await settle();
+      const tts5 = speech().slice(from5);
+      const said5 = playedWords().join(' ');
+      check('picked, it finishes: its whole summary is read out, its project first and its question last, piece after piece, the first short; each piece asked of ElevenLabs once, with v4 Turbo and a key',
+        said5 === `Atlas finished. ${BRIEF5} It asks: ${ASKS5}` && tts5.length >= 2 && tts5[0].body.text.length <= 200 && same(tts5.map((t) => t.body.text), playedWords())
+        && tts5.every((t) => t.body.model_id === 'eleven_v4_turbo' && t.key === '[key]'), said5.length > 160 ? `${said5.slice(0, 160)}… (${tts5.length} pieces)` : said5);
+      const inPage5 = await until(async () => { const p = (await did()).filter((d) => d.what === 'play').map((d) => d.words); return p.length >= tts5.length ? p.slice(-tts5.length) : null; }, 3000);
+      check('the window plays the pieces it is handed, in order', Boolean(inPage5) && same(inPage5, playedWords().map((w) => w.slice(0, 200))), JSON.stringify((inPage5 || []).map((w) => w.slice(0, 30))));
+      // the summary comes a moment after the turn ends: still read out, keys taken out
+      voice.clear();
+      const from5b = speech().length;
+      await turn(null);
+      await wait(600);
+      await call(b.sid, 'voice_brief', { project: 'Atlas', line: 'The made-up refunds pass.', brief: `The made-up refunds test passes now: the made-up bank is mocked. The made-up key ${LEAK} stays in the made-up settings.` });
+      await until(() => (voice.played().length ? true : null), 3000);
+      await settle();
+      const late = playedWords().join(' ');
+      check('a summary that comes just after the turn ends is still read out, with no key in it', late.startsWith('Atlas finished. The made-up refunds test passes now') && !late.includes(LEAK)
+        && late.includes('[hidden]') && speech().length > from5b, late);
+      // a turn that ends without a new summary (a short answer): nothing, and nothing read twice
+      voice.clear();
+      const from5c = speech().length;
+      await turn(null);
+      await wait(1200);
+      await settle();
+      check('a turn that ends without a new summary says nothing: the last one is never read twice', voice.played().length === 0 && speech().length === from5c, JSON.stringify(playedWords()));
+      // let go by the same menu: its next summary is not read out
+      const m3 = await menuOfA();
+      const letGo = Boolean(m3 && m3.items.some((i) => i.label === READ && i.ticked)) && await inPage(pageMenuRun, READ);
+      const gone = await until(() => !voice.view().follow.includes(A), 4000);
+      const markOff = await until(async () => !(await marked()), 3000);
+      voice.clear();
+      const from5d = speech().length;
+      await turn(briefA);
+      await wait(1200);
+      await settle();
+      check('let go by the same menu: unticked, its speaker gone, and its next summary is kept but not read out', letGo && Boolean(gone) && Boolean(markOff) && voice.played().length === 0
+        && speech().length === from5d && voice.view().briefs === 2, JSON.stringify({ letGo, follow: voice.view().follow.length, played: playedWords() }));
+
+      // 6. a mise au point asked for: piece after piece, the first one short, each made with the words around it
+      voice.clear();
+      const before6 = speech().length;
+      const atlas = voice.compose('Atlas');
+      await voice.briefing('Atlas');
+      await settle();
+      const tts6 = speech().slice(before6);
+      check('a mise au point of one project is said piece after piece, the first short so the first sound comes soon, each made with the words around it',
+        tts6.length >= 2 && atlas === one && playedWords().join(' ') === atlas && tts6[0].body.text.length <= 200 && Boolean(tts6[0].body.next_text) && Boolean(tts6[1].body.previous_text),
+        JSON.stringify(tts6.map((t) => t.body.text.length)));
+
+      // 7. what the microphone heard, as made-up bytes: understood, and answered
+      const sound = Buffer.from('made-up recorded sound');
+      hearing = ' Mise au point ';
+      voice.clear();
+      const before7 = asked.length;
+      const r1 = await voice.heard(sound, 'audio/webm;codecs=opus', 3);
+      await settle();
+      const stt = asked.slice(before7).find((x) => x.url.includes('/v1/speech-to-text'));
+      check('what was heard goes to Scribe v2 as a sound file, without sound tags, with a key; "mise au point" is a briefing of everything',
+        Boolean(stt) && stt.body.model_id === 'scribe_v2' && stt.body.tag_audio_events === 'false' && /^\[\d+ bytes, audio\/webm;codecs=opus\]$/.test(stt.body.file) && stt.key === '[key]'
+        && r1.what === 'brief' && r1.project === '' && playedWords().join(' ') === voice.compose(''), JSON.stringify({ r1, stt: stt ? stt.body : null }));
+      hearing = 'go to orbit';
+      const r2 = await voice.heard(sound, 'audio/webm;codecs=opus', 2);
+      check('"go to" and a project brings the window to that project\'s chat', r2.what === 'go' && r2.project === 'Orbit' && voice.went() === 'voice-made-up-2', JSON.stringify(r2));
+      hearing = 'again';
+      voice.clear();
+      const before8 = speech().length;
+      const r3 = await voice.heard(sound, 'audio/webm;codecs=opus', 1);
+      await settle();
+      check('"again" says the last briefing once more from this computer: nothing more is asked of ElevenLabs', r3.what === 'again' && playedWords().join(' ') === voice.compose('')
+        && speech().length === before8, JSON.stringify({ what: r3.what, pieces: playedWords().length }));
+      const stopsBefore = (await did()).filter((d) => d.what === 'stop').length;
+      hearing = 'stop';
+      const r4 = await voice.heard(sound, 'audio/webm;codecs=opus', 1);
+      const stopped = await until(async () => (await did()).filter((d) => d.what === 'stop').length > stopsBefore, 3000);
+      check('"stop" stops it, in the window too', r4.what === 'stop' && Boolean(stopped), r4.what);
+      hearing = '';
+      voice.clear();
+      const r5 = await voice.heard(sound, 'audio/webm;codecs=opus', 1);
+      await settle();
+      check('nothing heard: it says so', r5.what === 'none' && same(playedWords(), ['I did not catch that.']), JSON.stringify(playedWords()));
+
+      // 8. ElevenLabs turning the key down: said in Settings, on a card and by a low sound in the window
+      refuse = 401;
+      await voice.briefing('Orbit');
+      await settle();
+      refuse = 0;
+      const troubled = (await did()).filter((d) => d.what === 'trouble').map((d) => d.words);
+      check('a key ElevenLabs turns down is said in Settings and in the window', voice.view().lastError === 'ElevenLabs turned the key down.' && troubled.includes('ElevenLabs turned the key down.'),
+        JSON.stringify({ lastError: voice.view().lastError, troubled }));
+
+      // 9. Settings: its part, the voices to pick from, the plan, never the key
+      await inPage(() => Desk.Settings.open('voice'));
+      await drawn();
+      const part = () => inPage((k) => {
+        const s = document.querySelector('#settings section[data-section="voice"]');
+        return s ? { text: s.textContent, leak: document.documentElement.outerHTML.includes(k),
+          switches: [...s.querySelectorAll('.set-row')].filter((r) => r.querySelector('.switch')).map((r) => [r.querySelector('.what > div').textContent, r.querySelector('.switch').classList.contains('on')]) } : null;
+      }, KEY);
+      const shown = await part();
+      check('Settings shows the voice on, its one switch, how a chat is picked, what leaves this computer, the summaries kept, and never the key', Boolean(shown) && !shown.leak
+        && same(shown.switches, [['Let Lowlit talk', true]]) && shown.text.includes('Right-click a chat and pick "Read it out when it finishes"')
+        && shown.text.includes('Chats read out when they finish: none.') && shown.text.includes('What leaves this computer') && shown.text.includes('2 summaries kept'),
+        shown ? JSON.stringify(shown.switches) : 'no part');
+      const press = (words) => inPage((w) => { const x = [...document.querySelectorAll('#settings section[data-section="voice"] button')].find((el) => el.textContent === w); if (x) x.click(); return Boolean(x); }, words);
+      await press('Choose another');
+      const options = await until(() => inPage(() => { const s = document.querySelector('#settings .voice-pick'); return s ? [...s.options].map((o) => o.textContent) : null; }), 4000);
+      await inPage(() => { const s = document.querySelector('#settings .voice-pick'); s.value = 'MadeUpVoice002'; s.dispatchEvent(new Event('change')); return true; });
+      const picked = await until(() => (voice.view().voice === 'MadeUpVoice002' ? voice.view() : null), 4000);
+      check('the voices of the key are listed, your own first, and the one picked is kept', same(options, ['Made-up Own (yours)', 'Made-up Ada']) && Boolean(picked) && picked.voiceName === 'Made-up Own',
+        JSON.stringify({ options, name: picked && picked.voiceName }));
+      await press('Check my plan');
+      const planText = await until(async () => { const p = await part(); return p && /characters used this month/.test(p.text) ? p.text : ''; }, 4000);
+      check('your plan, as ElevenLabs counts it', /Creator plan: 1,200 of 121,000 characters used this month, back to 0 on \d+ \w+\./.test(planText || ''),
+        planText ? (/Creator plan[^.]*\./.exec(planText) || [''])[0] : 'not shown');
+      await inPage(() => Desk.Settings.close());
+
+      // 10. off again: a chat started then is not told to brief
+      voice.on(false);
+      const d = await connect();
+      check('switched off, a chat started then is not told to brief, and no talk key is held', d.told === instructionsFor(false) && voice.keyState() === 'off');
+    } finally {
+      try {
+        await inPage(() => {
+          const s = window.voiceSnapSaved;
+          if (s) { takeSnapshot({ ...s.snap, at: Date.now() }); Desk.state.frozen = s.frozen; delete window.voiceSnapSaved; Desk.paint(); }
+          return true;
+        });
+      } catch { /* the window is gone: nothing to put back */ }
+      voice.follow(A, false);
+      voice.stub(null);
+      voice.inTest(false);
+      voice.clear();
+      voice.key('');
+      voice.on(false);
+      voice.flush();
+      if (!hadFile) fs.rmSync(voice.file(), { force: true });
+      fs.rmSync(voice.dir(), { recursive: true, force: true });
+      browser.who(null);
+      noteCards.track({ ...latestBefore, at: Date.now() });
+      watch.post({ type: 'pace', ms: 2000 });
+    }
+    check('the voice phase leaves no key, briefing file, line or made-up chat behind, in main or in the window\'s list', !fs.existsSync(voice.dir()) && (hadFile || !fs.existsSync(voice.file()))
+      && !watch.latest().chats.some((c) => [A, B, C].includes(c.key)) && !voice.view().follow.length
+      && !(await inPage((k) => Boolean(window.voiceSnapSaved) || Desk.state.snap.chats.some((c) => c.key === k) || Boolean(document.querySelector(`#chat-list .nav-item.chat[data-key="${k}"]`)), A)));
+  };
+
   // The checks were written for the window as the app makes it, 1360 by 860. On a screen smaller than that (a build
   // machine's is 1024 by 768) Windows hands a smaller one over: it gets its size back before anything is looked at.
   const made = win.getContentSize();
@@ -11640,6 +12053,7 @@ window.framesSeen = function () { return frames; };
     else if (only === 'record') await recordPhase();
     else if (only === 'nest') await nestPhase();
     else if (only === 'jev') await jevPhase();
+    else if (only === 'voice') await voicePhase();
     else if (only === 'strip') await stripPhase();
     else if (only === 'reload') await reloadPhase();
     else if (only === 'wins') await winsPhase();

@@ -9,6 +9,9 @@
 // Chromium paints a canvas whose graphics context is gone white all over, and this one fills the window: the canvas is
 // on the screen only from its first frame, and off it whenever its context goes (the graphics process ended, the
 // driver restarted), so the ground stays black until the light is back.
+// After three crashes close together Chromium lends the window no graphics chip at all until the app starts again (his
+// window, 8 Oct 2026 12:06): then the processor works the same light out as one still picture, in slices short enough
+// that typing never waits for it, and again only when the size, the scaling or the warmth changes.
 
 const Noir = (() => {
   const FPS = 24;
@@ -65,6 +68,8 @@ const Noir = (() => {
     }`;
   const BAYER = [0, 32, 8, 40, 2, 34, 10, 42, 48, 16, 56, 24, 50, 18, 58, 26, 12, 44, 4, 36, 14, 46, 6, 38, 60, 28, 52, 20, 62, 30, 54, 22,
     3, 35, 11, 43, 1, 33, 9, 41, 51, 19, 59, 27, 49, 17, 57, 25, 15, 47, 7, 39, 13, 45, 5, 37, 63, 31, 55, 23, 61, 29, 53, 21];
+  // the pattern's thresholds as the chip reads them back from its 8-bit texture
+  const BAYER_AT = BAYER.map((x) => Math.round(((x + 0.5) / 64) * 255) / 255);
 
   let host = null;
   let canvas = null;
@@ -107,10 +112,22 @@ const Noir = (() => {
   let renewTimer = 0;
   let renewTries = 0;
   let renewals = 0;
+  // the still picture while there is no graphics chip
+  let flat = null;
+  let flatKey = '';
+  let flatJob = 0;
+  let flatImage = null;
+  let grainBytes = null;
 
   const still = () => document.documentElement.classList.contains('still') || matchMedia('(prefers-reduced-motion: reduce)').matches;
   const live = () => on && awake && moving && !typing && !still() && !document.hidden && Boolean(gl) && !failed && !gl.isContextLost();
   const note = (text) => { if (typeof desk === 'object' && desk && typeof desk.slow === 'function') desk.slow(text); };
+  // a dim orange dot reads as brown: warm and green dots are lit brighter, so they read as light
+  const tintFor = (warmth, flare) => SILVER.map((x, i) => {
+    const warmed = x + (AMBER[i] * 1.35 - x) * warmth * 0.75;
+    return warmed + (GREEN[i] * 1.3 - warmed) * flare * 0.7;
+  });
+  const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
   function compile(type, src) {
     const s = gl.createShader(type);
@@ -144,6 +161,20 @@ const Noir = (() => {
     return t;
   }
 
+  /** The fog's grain, the same at every start (a fixed seed), for the graphics chip and the processor alike. */
+  function grain() {
+    if (grainBytes) return grainBytes;
+    grainBytes = new Uint8Array(256 * 256);
+    let seed = 0x9e3779b9;
+    for (let i = 0; i < grainBytes.length; i++) {
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      grainBytes[i] = ((t ^ (t >>> 14)) >>> 0) & 255;
+    }
+    return grainBytes;
+  }
+
   /** Everything the GPU holds, made again: at the start, and when Windows took the GPU away and gave it back. */
   function build() {
     gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, powerPreference: 'low-power' });
@@ -152,16 +183,7 @@ const Noir = (() => {
       scene = program(SCENE);
       dither = program(DITHER);
       gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-      // the same grain at every start: a fixed seed
-      const noise = new Uint8Array(256 * 256);
-      let seed = 0x9e3779b9;
-      for (let i = 0; i < noise.length; i++) {
-        seed = (seed + 0x6d2b79f5) | 0;
-        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-        noise[i] = ((t ^ (t >>> 14)) >>> 0) & 255;
-      }
-      noiseTex = texture(256, 256, gl.LUMINANCE, noise, gl.LINEAR, gl.REPEAT);
+      noiseTex = texture(256, 256, gl.LUMINANCE, grain(), gl.LINEAR, gl.REPEAT);
       bayerTex = texture(8, 8, gl.LUMINANCE, new Uint8Array(BAYER.map((x) => Math.round(((x + 0.5) / 64) * 255))), gl.NEAREST, gl.REPEAT);
       const quad = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, quad);
@@ -234,11 +256,7 @@ const Noir = (() => {
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, bayerTex);
     gl.uniform1i(dither.u.u_bayer, 1);
-    // a dim orange dot reads as brown: warm and green dots are lit brighter, so they read as light
-    const tint = SILVER.map((x, i) => {
-      const warmed = x + (AMBER[i] * 1.35 - x) * warm * 0.75;
-      return warmed + (GREEN[i] * 1.3 - warmed) * lift * 0.7;
-    });
+    const tint = tintFor(warm, lift);
     gl.uniform3f(dither.u.u_tint, tint[0], tint[1], tint[2]);
     // see-through: between the dots the blur Windows draws shows, darkened by the page's own ground
     gl.uniform1f(dither.u.u_alpha, glass ? 0 : 1);
@@ -247,6 +265,7 @@ const Noir = (() => {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     frames++;
     if (canvas.classList.contains('off')) canvas.classList.remove('off');
+    if (flat) dropFlat();
     if (lostSince) {
       note(`Noir's light is drawn again, ${Math.round((Date.now() - lostSince) / 1000)} s after its graphics context went${renewTries ? ` (a new canvas, after ${renewTries} ${renewTries === 1 ? 'try' : 'tries'})` : ''}`);
       lostSince = 0;
@@ -299,8 +318,166 @@ const Noir = (() => {
     w = 0;
     h = 0;
     build();
-    if (!gl || failed) { renewLater(); return; }
+    if (!gl || failed) { renewLater(); paintFlat(); return; }
     wake();
+  }
+
+  const later = (fn) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(fn, { timeout: 200 }) : setTimeout(fn, 16));
+  /** The light with no graphics chip: the two shaders' arithmetic on the processor, as one still picture. */
+  function paintFlat() {
+    if (!on || !host) return;
+    const dpr = window.devicePixelRatio || 1;
+    const fw = Math.max(1, Math.round(host.clientWidth * dpr));
+    const fh = Math.max(1, Math.round(host.clientHeight * dpr));
+    const cellSize = Math.max(1, Math.round(dpr));
+    const key = `${fw}x${fh} ${cellSize} ${warmTo} ${glass}`;
+    if (key === flatKey) return;
+    flatKey = key;
+    const job = ++flatJob;
+    const N = grain();
+    const sw = Math.ceil(fw / SCALE);
+    const sh = Math.ceil(fh / SCALE);
+    const share = new Float32Array(sw * sh);
+    if (!flatImage || flatImage.width !== fw || flatImage.height !== fh) flatImage = new ImageData(fw, fh);
+    const img = flatImage;
+    const px = img.data;
+    const out = new Uint32Array(px.buffer);
+    const ground = glass ? 0 : 0xff000000;
+    const tint = tintFor(warmTo, 0);
+    const wrap = (x) => ((x % 256) + 256) % 256;
+    const mx = wrap(STILL_AT * 0.05);
+    const my = wrap(STILL_AT * 0.02);
+    const mz = wrap(STILL_AT * 0.013);
+    const breath = 0.85 + 0.15 * Math.sin(STILL_AT * 0.4);
+    const aspect = fw / fh;
+    // the grain as the chip samples it: between texel centres, wrapping
+    const nz = (x, y) => {
+      const gx = x - 0.5;
+      const gy = y - 0.5;
+      const x0 = Math.floor(gx);
+      const y0 = Math.floor(gy);
+      const ax = gx - x0;
+      const ay = gy - y0;
+      const i0 = x0 & 255;
+      const i1 = (x0 + 1) & 255;
+      const j0 = (y0 & 255) << 8;
+      const j1 = ((y0 + 1) & 255) << 8;
+      const a = N[j0 + i0];
+      const b = N[j0 + i1];
+      const c = N[j1 + i0];
+      const d = N[j1 + i1];
+      return ((a + (b - a) * ax) * (1 - ay) + (c + (d - c) * ax) * ay) / 255;
+    };
+    // part of a scene row, its first row at the bottom as in the chip's texture
+    const sceneRow = (j, from, to) => {
+      const py = (j + 0.5) / sh;
+      for (let i = from; i < to; i++) {
+        const dx = ((i + 0.5) / sw) * aspect + 0.05;
+        const dy = py - 1.08;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const ang = Math.atan2(dy, dx);
+        const rx = ang * 12 + mx;
+        const ry = dist * 0.35;
+        let rays = smooth(0.36, 0.6, 0.5 * nz(rx, ry) + 0.25 * nz(rx * 2, ry * 2));
+        rays *= 0.75 + 0.5 * nz(ang * 46 - mx * 2.3, dist * 2 - mx * 3);
+        const fx = (dx - 0.05) * 2.4 + my;
+        const fy = py * 2.4 + mz;
+        const fog = 0.5 * nz(fx, fy) + 0.25 * nz(fx * 2, fy * 2) + 0.125 * nz(fx * 4, fy * 4);
+        const light = (rays * (0.75 + 0.5 * fog) * 2 ** (-dist * 1.6) * 1.15 + 2 ** (-dist * 6) * 0.55) * breath;
+        share[j * sw + i] = Math.round(Math.min(1, Math.max(0, light)) * 0.7 * 255) / 255;
+      }
+    };
+    const x0s = new Int32Array(fw);
+    const x1s = new Int32Array(fw);
+    const axs = new Float32Array(fw);
+    const cols = new Int32Array(fw);
+    for (let c = 0; c < fw; c++) {
+      const tx = ((c + 0.5) / fw) * sw - 0.5;
+      const f = Math.floor(tx);
+      axs[c] = tx - f;
+      x0s[c] = Math.min(sw - 1, Math.max(0, f));
+      x1s[c] = Math.min(sw - 1, Math.max(0, f + 1));
+      cols[c] = Math.floor((c + 0.5) / cellSize) & 7;
+    }
+    // part of a row of dots, from the top; the chip counts its rows and the pattern's from the bottom
+    const dotRow = (r, from, to) => {
+      const fy = fh - r - 0.5;
+      const ty = (fy / fh) * sh - 0.5;
+      const f = Math.floor(ty);
+      const ay = ty - f;
+      const row0 = Math.min(sh - 1, Math.max(0, f)) * sw;
+      const row1 = Math.min(sh - 1, Math.max(0, f + 1)) * sw;
+      const pattern = (Math.floor(fy / cellSize) & 7) * 8;
+      const at = r * fw;
+      for (let c = from; c < to; c++) {
+        const a = share[row0 + x0s[c]];
+        const b = share[row0 + x1s[c]];
+        const e = share[row1 + x0s[c]];
+        const d = share[row1 + x1s[c]];
+        if (a === 0 && b === 0 && e === 0 && d === 0) { out[at + c] = ground; continue; }
+        const s = (a + (b - a) * axs[c]) * (1 - ay) + (e + (d - e) * axs[c]) * ay;
+        if (s < BAYER_AT[pattern + cols[c]]) { out[at + c] = ground; continue; }
+        const k = 0.2 + 0.28 * smooth(0.45, 0.9, s);
+        const p = (at + c) * 4;
+        // see-through: the dot's own colour at its strength, the blur Windows draws between the dots
+        const g = glass ? 255 : k * 255;
+        px[p] = tint[0] * g;
+        px[p + 1] = tint[1] * g;
+        px[p + 2] = tint[2] * g;
+        px[p + 3] = glass ? k * 255 : 255;
+      }
+    };
+    // the work in pieces of at most 512 dots: before the processor has the code warm, one row of a 4K screen alone
+    // would take longer than a piece of time may
+    const PIECE = 512;
+    const sceneParts = Math.ceil(sw / PIECE);
+    const dotParts = Math.ceil(fw / PIECE);
+    const scenePieces = sh * sceneParts;
+    const pieces = scenePieces + fh * dotParts;
+    let piece = 0;
+    let spent = 0;
+    const step = (deadline) => {
+      if (job !== flatJob) return;
+      const t0 = performance.now();
+      const budget = deadline && typeof deadline.timeRemaining === 'function' ? Math.min(6, Math.max(3, deadline.timeRemaining())) : 5;
+      while (piece < pieces && performance.now() - t0 < budget) {
+        if (piece < scenePieces) {
+          const from = (piece % sceneParts) * PIECE;
+          sceneRow(Math.floor(piece / sceneParts), from, Math.min(sw, from + PIECE));
+        } else {
+          const k = piece - scenePieces;
+          const from = (k % dotParts) * PIECE;
+          dotRow(Math.floor(k / dotParts), from, Math.min(fw, from + PIECE));
+        }
+        piece++;
+      }
+      spent += performance.now() - t0;
+      if (piece < pieces) { later(step); return; }
+      showFlat(img, spent);
+    };
+    later(step);
+  }
+  function showFlat(img, ms) {
+    const first = !flat;
+    if (!flat) {
+      flat = document.createElement('canvas');
+      flat.className = 'noir-still';
+      flat.setAttribute('aria-hidden', 'true');
+      host.append(flat);
+    }
+    if (flat.width !== img.width || flat.height !== img.height) {
+      flat.width = img.width;
+      flat.height = img.height;
+    }
+    const ctx = flat.getContext('2d');
+    if (ctx) ctx.putImageData(img, 0, 0);
+    if (first) note(`Noir's light has no graphics chip (${failed || 'its context is gone'}): it stands still, worked out by the processor in ${Math.round(ms)} ms, until the chip can be had again`);
+  }
+  function dropFlat() {
+    flatJob++;
+    flatKey = '';
+    flatImage = null;
+    if (flat) { flat.remove(); flat = null; }
   }
 
   function tick() {
@@ -325,6 +502,7 @@ const Noir = (() => {
       cancelAnimationFrame(raf);
       timer = 0;
       raf = 0;
+      if (!on) { flatJob++; flatKey = ''; } else paintFlat();
       return;
     }
     if (live()) {
@@ -386,7 +564,7 @@ const Noir = (() => {
     /** A chat finished: the light flares green for a moment (only seen while the window is in front). */
     pulse() { if (live()) lift = 1; },
     /** For the self-test: what it is doing, and one frame drawn at once with how long the GPU took for it, in ms. */
-    state: () => ({ on, awake, moving, typing, still: still(), hidden: document.hidden, running: Boolean(timer || raf), frames, failed, size: [w, h], scene: [sw, sh], warm: warmTo, glass, lost: Boolean(lostSince), renewals }),
+    state: () => ({ on, awake, moving, typing, still: still(), hidden: document.hidden, running: Boolean(timer || raf), frames, failed, size: [w, h], scene: [sw, sh], warm: warmTo, glass, lost: Boolean(lostSince), renewals, flat: Boolean(flat) }),
     drawNow(t = STILL_AT, look = {}) {
       if (!gl || failed) return -1;
       const kept = [warm, lift, glass];
@@ -403,9 +581,14 @@ const Noir = (() => {
     },
     /** For the self-test: the share of pixels lit, how bright they are on average (0 to 1), and how warm and how green the lit ones are. */
     sample() {
-      if (!gl || failed) return null;
-      const px = new Uint8Array(w * h * 4);
-      gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      let px = null;
+      if (gl && !failed) {
+        px = new Uint8Array(w * h * 4);
+        gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      } else if (flat) {
+        px = flat.getContext('2d').getImageData(0, 0, flat.width, flat.height).data;
+      }
+      if (!px) return null;
       let lit = 0;
       let sum = 0;
       let red = 0;

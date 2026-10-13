@@ -266,18 +266,24 @@ body.no-side .stage { margin-left: 8px; }
 /* The name keeps the room its words need, up to a share of the strip, and never shrinks: a box even a fraction
    of a pixel short of its text swaps the end of it for "…". What the chat is doing takes the room that is left
    and is the one cut short when there is too little. */
-.th-id { flex: 0 0 auto; min-width: 0; max-width: 44%; display: flex; align-items: center; gap: 8px; }
-.th-name { min-width: 0; margin: 0 -5px; padding: 2px 5px; border-radius: 6px; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; font-weight: 600; }
+.th-id { flex: 0 0 auto; min-width: 0; max-width: 44%; display: flex; align-items: baseline; gap: 8px; }
+.th-id > .glyph { align-self: center; }
+/* The name, its project and branch, and what it is doing stand on one baseline: centred one by one, letters of other
+   sizes and faces land a screen pixel apart at one scale or another. Boxes aligned by baseline start at the top of the
+   strip, so the margin centres the name's 24px box in it: (36 - 1 - 24) / 2. */
+.th-id, .th-doing { align-self: baseline; margin-top: 5.5px; }
+/* as tall as the project's button beside it, its words placed the same way inside */
+.th-name { min-width: 0; margin: 0 -5px; padding: 3px 5px; border-radius: 6px; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; font-weight: 600; line-height: 18px; }
 .th-name:hover { background: var(--hover); }
 .th-rename { width: 220px; max-width: 100%; height: 24px; margin: 0 -5px; padding: 0 5px; border-radius: 6px; border: 1px solid var(--accent); background: rgba(0, 0, 0, .3); box-shadow: 0 0 0 3px oklch(0.68 0.15 252 / 0.16); font-size: 12.5px; font-weight: 600; user-select: text; }
 /* where a name is too long for its share, the folder gives way before the name is cut */
 .th-folder { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text-3); font-size: 12px; }
 /* the project and its branch: a quiet button that gives way before the name, the project's name first */
-.th-repo { flex: 0 100 auto; min-width: 0; height: 24px; margin: 0 -3px; padding: 0 7px; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;
-  color: var(--text-3); font-size: 12px; white-space: nowrap; overflow: hidden; transition: background-color 120ms var(--ease), color 120ms var(--ease); }
+.th-repo { flex: 0 100 auto; min-width: 0; margin: 0 -3px; padding: 3px 7px; display: inline-flex; align-items: baseline; gap: 6px; border-radius: 6px;
+  color: var(--text-3); font-size: 12px; line-height: 18px; white-space: nowrap; overflow: hidden; transition: background-color 120ms var(--ease), color 120ms var(--ease); }
 .th-repo:hover, .th-repo.open { background: var(--hover); color: var(--text-2); }
 .th-repo .rp-name { flex: 0 1000 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.th-repo .rp-icon { flex: none; color: var(--text-4); }
+.th-repo .rp-icon { flex: none; align-self: center; color: var(--text-4); }
 .th-repo:hover .rp-icon { color: var(--text-3); }
 .th-repo .rp-branch { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); font-size: 11.5px; color: var(--text-2); }
 .th-repo .rp-copy { flex: none; font-size: 11px; color: var(--text-3); }
@@ -420,6 +426,7 @@ body.no-side #side-grip { display: none; }
 .sidebar .group.folded { contain-intrinsic-size: auto 26px; }
 .nav-item.chat.ws-edge::after { content: ''; position: absolute; right: 0; top: 4px; bottom: 4px; width: 2px; border-radius: 1px; background: oklch(0.80 0.10 var(--ws-h)); }
 .nav-item.chat .row-pin { flex: none; color: var(--text-3); }
+.nav-item.chat .row-voice { flex: none; color: var(--text-3); }
 .nav-item.chat .subs { flex: none; display: inline-flex; align-items: center; gap: 3px; color: var(--text-3); font-size: 11px; font-variant-numeric: tabular-nums; }
 .ws-swatches { flex: none; display: flex; align-items: center; gap: 5px; }
 .ws-choice { flex: none; width: 14px; height: 14px; border-radius: 50%; background: oklch(0.72 0.11 var(--ws-h) / 0.16); border: 1px solid oklch(0.80 0.10 var(--ws-h)); }

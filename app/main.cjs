@@ -44,6 +44,7 @@ const { Chats } = require('./chats.cjs');
 const { Tail } = require('./replay.cjs');
 const { repoOf, copyOf, projectName, originOf, inside, sameFolder, statusOf, branchesOf, switchTo } = require('./git.cjs');
 const Jev = require('./jev.cjs');
+const Voice = require('./voice.cjs');
 const { hideSecrets } = require('./find.cjs');
 const { Servers, scriptsOf } = require('./servers.cjs');
 const { Browser, askList, ASK_FIRST } = require('./browser.cjs');
@@ -51,6 +52,7 @@ const { Door, register, unregister, PORT: BROWSER_PORT } = require('./browser-mc
 const { Keeper } = require('./keeper.cjs');
 const { Viewer, SCHEME: VIEWER_SCHEME, EXTENSIONS: VIEWER_EXTENSIONS } = require('./viewer.cjs');
 const { Work, takeWork } = require('./work.cjs');
+const { focusLock } = require('./focuslock.cjs');
 
 // The Viewer's files reach the window's page by an address of their own (viewer.cjs), streamed in parts as a video
 // needs, and readable by the page's canvas: told to Chromium before the app is ready, as it must be.
@@ -76,6 +78,9 @@ const BASE = '#0a0a0b';
 // in the window: on many keyboards that is how @ # { [ are typed.
 const NEST_KEY = 'CommandOrControl+Shift+Space';
 const NEST_FLAG = '--nest';
+// The voice's talk key, held from every program only while the voice is on (in VS Code it is the Debug Console's)
+const VOICE_KEY = 'CommandOrControl+Shift+Y';
+const VOICE_KEY_WORDS = 'Ctrl Shift Y';
 
 let win = null;
 let tray = null;
@@ -164,6 +169,8 @@ let settings = {
   // what every Claude Code chat is started with, and a workspace's own: { [space id]: { model, effort } }, where ''
   // is the same as for every chat. Claude Code keeps no thinking above xhigh for the next session by itself
   claude: CLAUDE_FIRST,
+  // Windows' focus lock held at 0, so Windows 11 keeps no token for each program a chat starts (focuslock.cjs, leakFix)
+  leakFix: false,
 };
 let glassOn = false;                        // the window was opened see-through this time
 let nestKeyState = 'off';                   // the Nest's key from any program: 'on', 'off' (switched off, or a hidden test window), 'taken' (by another program)
@@ -185,6 +192,7 @@ let browserTimer = null;
 let keeper = null;                          // the program that holds the consoles through a restart (keeper.cjs)
 let keeperReady = Promise.resolve();        // ... and the consoles it held for this window, taken up again
 let adoption = null;                        // what the page is told of those: { n, how }
+let takingUp = true;                        // ... until they are all back, no session is said to run in another terminal
 let gamedNote = null;                       // back from gaming mode, said once: { chats, servers: names, lost: names }
 const tails = new Map();                    // chat -> what its console printed lately, for a page that starts over
 // The page has asked what there is: from then on it is told what changes. A page that is loading, or gone, is told
@@ -318,6 +326,7 @@ function loadSettings() {
   settings.float = { on: f.on === true, small: f.small === true, overDesk: f.overDesk === true,
     x: Number.isFinite(f.x) ? f.x : null, y: Number.isFinite(f.y) ? f.y : null };
   settings.work = takeWork(kept.work);
+  settings.leakFix = kept.leakFix === true;
 }
 function writeSettings() {
   clearTimeout(saveTimer);
@@ -511,7 +520,7 @@ const chats = new Chats({
 /** Which console, and which background session, belongs to which chat: how the watcher ties what it finds on disk to the chats here. */
 function tellWatcher() {
   // the keeper's number: what it takes is the app's own, though after a restart it no longer runs under the app
-  if (worker) worker.postMessage({ type: 'shells', pairs: chats.shells(), jobs: chats.jobs(), folders: chats.list().map(({ id, cwd }) => [id, cwd]), keeper: (keeper && keeper.pid) || 0 });
+  if (worker) worker.postMessage({ type: 'shells', pairs: chats.shells(), jobs: chats.jobs(), folders: chats.list().map(({ id, cwd }) => [id, cwd]), keeper: (keeper && keeper.pid) || 0, settled: !takingUp });
 }
 
 /** The Claude Code session running in a chat of this window, as the watcher last saw it. */
@@ -828,6 +837,164 @@ async function judge(c) {
   const final = await askWatcher('final', { key: c.key }, 5000);
   if (!final || !jev) return;
   try { await jev.judgeTurn({ ...final, key: c.key, since: c.since }); } catch (err) { log(`jev: ${err.message}`); }
+}
+
+// ---- the voice: off until the person switches it on in Settings and gives an ElevenLabs key (voice.cjs). The chats
+// ---- write their own briefings through the door (voice_brief); one voice says one thing at a time, in the page.
+let voice = null;
+let voiceStub = null;            // a test run's made-up ElevenLabs: a self-test never reaches the network
+let voiceKeyState = 'off';       // the talk key from any program: 'on', 'off' (the voice is off, or a hidden test window), 'taken' (by another program)
+let voiceEpoch = 0;              // a stop ends every line said or waiting from before it
+let voiceQueue = Promise.resolve();
+let voiceLast = [];              // the pieces of the last briefing: "again" says them once more from here, at no cost
+const voiceStarted = new Map();  // session -> when its turn started, as last seen working: a briefing from before is not this turn's
+const voiceSpoken = new Map();   // session -> the briefing last read out for it, by its time: none is read out twice
+let voiceInTest = false;         // a hidden test window reads picked chats out only while its test asks
+let voicePlayed = [];            // in a test run: what the page was handed to play
+let voiceWent = '';              // in a test run: where "go to" took the window
+
+/** One request to ElevenLabs: { status, buffer (what it said, as sound), json (an answer in words) }. */
+async function voiceNet(url, { method = 'GET', headers = {}, body, ms = 20000 } = {}) {
+  if (SELFTEST_DIR) {
+    if (!voiceStub) return { status: 503, buffer: null, json: null };
+    // the made-up ElevenLabs is told whether a key came, never the key
+    const shown = { ...headers };
+    if (shown['xi-api-key']) shown['xi-api-key'] = '[key]';
+    let sent = body;
+    if (body instanceof FormData) { sent = {}; for (const [k, v] of body.entries()) sent[k] = typeof v === 'string' ? v : `[${v.size} bytes, ${v.type}]`; }
+    else if (typeof body === 'string') { try { sent = JSON.parse(body); } catch { /* sent as it is */ } }
+    return voiceStub(url, { method, headers: shown, body: sent });
+  }
+  const res = await fetch(url, { method, headers, body, signal: AbortSignal.timeout(ms) });
+  const bytes = Buffer.from(await res.arrayBuffer());
+  let json = null;
+  if (/json/i.test(res.headers.get('content-type') || '')) { try { json = JSON.parse(bytes.toString('utf8')); } catch { json = null; } }
+  return { status: res.status, buffer: json ? null : bytes, json };
+}
+const voiceView = () => (voice ? { ...voice.view(), keyState: voiceKeyState, keyWords: VOICE_KEY_WORDS } : null);
+/** What the chats reach of the voice through the door: whether it is on (they are told to brief), and their briefing. */
+const voiceDoor = {
+  isOn: () => Boolean(voice && voice.isOn()),
+  briefTool: async (drv, args) => ({ text: voice ? voice.brief({ key: drv.key, cwd: drv.cwd, name: drv.name }, args) : 'The voice is not ready: Lowlit is still starting.' }),
+};
+/** The chats a mise au point is about: the window's own, and the sessions running elsewhere. */
+const voiceChats = () => latest.chats.filter((c) => c.chat || c.pid).map((c) => ({ key: c.key, cwd: c.cwd || '', name: nameOf(c), state: c.state, chat: c.chat || '' }));
+
+/** Something for the voice to do after what it is doing: one voice, one thing at a time. A stop drops what waits. */
+function voiceJob(fn) {
+  const epoch = voiceEpoch;
+  voiceQueue = voiceQueue.then(() => (epoch === voiceEpoch ? fn(epoch) : undefined)).catch((err) => voiceTrouble(err));
+  return voiceQueue;
+}
+/** A piece of speech to the page, played after the pieces before it, unless a stop came since it was asked for. */
+function voicePlay(audio, words, epoch) {
+  if (epoch !== voiceEpoch) return;
+  if (SELFTEST_DIR) voicePlayed.push({ words, bytes: audio.length });
+  send('desk:command', 'voice-play', { audio, words });
+}
+/** Everything said or waiting to be said ends now. */
+function voiceStop() {
+  voiceEpoch++;
+  send('desk:command', 'voice-stop');
+}
+/** A short line made once and kept on this computer: "I did not catch that." */
+function voiceLine(line) {
+  return voiceJob(async (epoch) => {
+    const audio = await voice.clip(line);
+    if (audio) voicePlay(audio, line, epoch);
+  });
+}
+/**
+ * What went wrong, on a card: in the window when it is in front, over the other programs when not. The page sounds it.
+ * The same trouble again within a minute (three lines that could not be made) is said once.
+ */
+let voiceTroubled = { words: '', at: 0 };
+function voiceTrouble(err) {
+  const words = err && err.message ? err.message : 'The voice could not speak.';
+  if (words === voiceTroubled.words && Date.now() - voiceTroubled.at < 60000) return;
+  voiceTroubled = { words, at: Date.now() };
+  send('desk:command', 'voice-trouble', words);
+  if (!deskInFront() && !HIDDEN) noteUp({ kind: 'info', title: 'The voice', what: 'could not speak', body: words, target: 'settings' });
+}
+
+/** Words said piece after piece, once what is before them is said; kept for "again". words(): made when their turn comes. */
+function voiceSay(words) {
+  return voiceJob(async (epoch) => {
+    const said = [];
+    await voice.say(words(), (audio, piece) => { said.push({ audio, words: piece }); voicePlay(audio, piece, epoch); }, () => epoch !== voiceEpoch);
+    if (said.length) voiceLast = said;
+  });
+}
+
+/**
+ * A chat the person picked (its right-click menu) finished a turn: its whole briefing, read out once it is there. The
+ * chat sends it just before its last words; a turn it sent none for (a short answer) is not read out.
+ */
+function voiceFinished(c) {
+  // asked again while it waits for a late briefing: let go, or the voice switched off, meanwhile says nothing
+  const wanted = () => !quitting && Boolean(voice) && voice.ready() && voice.follows(c.key) && !(HIDDEN && !voiceInTest);
+  if (!wanted()) return;
+  const since = voiceStarted.get(c.key) || 0;
+  const row = { key: c.key, cwd: c.cwd || '' };
+  const fresh = () => { const b = voice.briefOf(row); return b && b.at >= since && b.at !== voiceSpoken.get(c.key) ? b : null; };
+  const read = (b) => {
+    voiceSpoken.set(c.key, b.at);
+    const text = voice.composeChat(row);
+    voiceSay(() => text);
+  };
+  const b = fresh();
+  if (b) { read(b); return; }
+  let tries = 0;
+  const timer = setInterval(() => {
+    const x = wanted() ? fresh() : null;
+    if (x || !wanted() || ++tries >= 16) { clearInterval(timer); if (x) read(x); }
+  }, 500);
+}
+
+/** A mise au point, said piece after piece: of one project, or of everything (''). */
+function voiceBriefing(project) {
+  return voiceSay(() => voice.compose(voiceChats(), project));
+}
+
+/**
+ * What the microphone heard after the talk key: the words, then what they ask for. Every answer is said; "go to"
+ * brings the window up at that project's chat. { heard, what, project } goes back to the page.
+ */
+async function voiceHeard(audio, mime, seconds) {
+  let text = '';
+  try { text = await voice.hear(audio, mime, seconds); } catch (err) { voiceTrouble(err); return { heard: '', what: 'trouble', project: '' }; }
+  if (!text) { voiceLine('I did not catch that.'); return { heard: '', what: 'none', project: '' }; }
+  const live = voiceChats();
+  const asked = voice.understand(text, [...new Set(live.map((c) => voice.projectOf(c)))]);
+  if (asked.what === 'stop') voiceStop();
+  else if (asked.what === 'again') {
+    const pieces = voiceLast;
+    if (!pieces.length) voiceLine('Nothing to say again yet.');
+    else voiceJob(async (epoch) => { for (const p of pieces) voicePlay(p.audio, p.words, epoch); });
+  } else if (asked.what === 'go') {
+    const waits = (c) => c.state === 'attention' || c.state === 'error';
+    const theirs = live.filter((c) => voice.projectOf(c) === asked.project).sort((a, b) => Number(waits(b)) - Number(waits(a)) || Number(Boolean(b.chat)) - Number(Boolean(a.chat)));
+    const c = theirs[0];
+    if (c) {
+      const target = c.chat || `row:${c.key}`;
+      if (SELFTEST_DIR) voiceWent = target;
+      if (!HIDDEN) showWindow();
+      send('desk:command', 'goto', target);
+    }
+  } else voiceBriefing(asked.project);
+  return { heard: text, ...asked };
+}
+
+/** The talk key from any program, held while the voice is on. A program that holds it already keeps it: Settings says so. */
+function voiceKey() {
+  if (voiceKeyState === 'on') globalShortcut.unregister(VOICE_KEY);
+  voiceKeyState = 'off';
+  // a hidden test window never takes a key away from the person's own
+  if (HIDDEN || !voice || !voice.isOn()) return;
+  let ok = false;
+  try { ok = globalShortcut.register(VOICE_KEY, () => { if (!quitting) send('desk:command', 'voice-key'); }); } catch (err) { log(`the voice's key: ${err.message}`); }
+  voiceKeyState = ok ? 'on' : 'taken';
+  if (!ok) log(`the voice's key ${VOICE_KEY} is held by another program`);
 }
 
 // what Jev made of a search, by the words searched and the results it was shown: asking again costs nothing
@@ -1273,9 +1440,11 @@ function track(data) {
     if (c.state === 'working' || c.state === 'compacting') working++;
     const before = lastState.get(c.key);
     lastState.set(c.key, c.state);
+    if (c.state === 'working') voiceStarted.set(c.key, Number(c.since) || now);
     if (first || !before || before === c.state) continue;
     const finished = c.state === 'idle' && (before === 'working' || before === 'compacting');
     if (finished && !stale && jev && jev.ready()) judge(c);
+    if (finished && !stale) voiceFinished(c);
     const wants = c.state === 'attention' || c.state === 'error';
     if (!wants && !finished) continue;
     if (c.chat) nudge = true;
@@ -1285,6 +1454,7 @@ function track(data) {
     if (on) wanted.push({ c, finished, nest });
   }
   for (const key of lastState.keys()) if (!keys.has(key)) lastState.delete(key);
+  for (const key of voiceStarted.keys()) if (!keys.has(key)) voiceStarted.delete(key);
   // a card that waits for the person goes once its chat no longer waits, or is gone
   if (notes.some((n) => n.stays)) noteDrop((n) => n.stays && n.key && lastState.get(n.key) !== 'attention' && lastState.get(n.key) !== 'error');
   // a session wants the person, or just finished, while they are looking elsewhere: a card each, the newest on top
@@ -1480,6 +1650,7 @@ const shownSettings = () => ({ notify: { ...settings.notify }, fontSize: setting
   // the key Claude Code is given for the browser stays here
   browser: { on: settings.browser.on, popOpen: settings.browser.popOpen, ask: settings.browser.ask.slice() },
   float: { on: settings.float.on, small: settings.float.small, overDesk: settings.float.overDesk },
+  leakFix: leakView(),
   work: { on: settings.work.on, aw: settings.work.aw, auto: settings.work.auto, gap: settings.work.gap, shifts: settings.work.shifts.map((s) => ({ ...s })) },
   claude: { model: settings.claude.model, effort: settings.claude.effort,
     spaces: Object.fromEntries(Object.entries(settings.claude.spaces).map(([id, v]) => [id, { ...v }])),
@@ -1522,6 +1693,7 @@ ipcMain.handle('desk:info', async () => {
     findProgress,
     settings: shownSettings(),
     jev: jev ? jev.view() : null,
+    voice: voiceView(),
     servers: servers ? servers.view : null,
     work: work ? work.view() : null,
     hidden: HIDDEN,
@@ -1685,6 +1857,31 @@ ipcMain.handle('desk:jev', (_event, what, value) => {
   if (what === 'key' && typeof value === 'string') return jev.setKey(value);
   return jev.view();
 });
+// The voice: its switches, its key (in once, locked away, never back), the voices to pick from, and what the
+// microphone heard after the talk key (the page records only between two presses of it, or until the person is quiet).
+const HEARD_MAX = 2 * 1024 * 1024;
+const HEARD_KINDS = /^audio\/(webm|ogg)(;codecs=opus)?$/;
+ipcMain.handle('desk:voice', async (_event, what, a, b, c) => {
+  if (!voice) return null;
+  if (what === 'on' && typeof a === 'boolean') { voice.setOn(a); voiceKey(); if (!a) voiceStop(); }
+  else if (what === 'key' && typeof a === 'string') voice.setKey(a);
+  else if (what === 'follow' && typeof a === 'string' && READ_KEY.test(a)) {
+    voice.setFollow(a, b === true);
+    // a chat that never sent a summary may have started before the voice was on: the page says so
+    return { ...voiceView(), briefed: Boolean(voice.briefOf({ key: a })) };
+  }
+  else if (what === 'voice' && typeof a === 'string') voice.setVoice(a, typeof b === 'string' ? b : '');
+  else if (what === 'voices') return voice.voices().catch(() => []);
+  else if (what === 'plan') await voice.plan().catch(() => null);
+  else if (what === 'hear-it') voiceLine('This is how I sound. Press the talk key and say mise au point.');
+  else if (what === 'brief') voiceBriefing(typeof a === 'string' ? a.slice(0, 80) : '');
+  else if (what === 'stop') voiceStop();
+  else if (what === 'heard') {
+    if (!(a instanceof Uint8Array) || !a.length || a.length > HEARD_MAX || typeof b !== 'string' || !HEARD_KINDS.test(b)) return null;
+    return voiceHeard(Buffer.from(a), b, clamp(Number(c) || 0, 0, 60));
+  }
+  return voiceView();
+});
 // One page of a conversation, read from its transcript: what was asked, said and done. The page names a session
 // by its id; which file that is, is worked out by the watcher, among the CLI's own transcripts only.
 const READ_KEY = /^(job:[0-9a-f]{6,40}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
@@ -1783,6 +1980,8 @@ ipcMain.handle('desk:settings', (_event, patch) => {
       // the clock switched on or off, or the usual shifts moved: what the title bar shows moves with them
       if (work) send('desk:work', work.view());
     }
+    // flipped by a click in this window, which is in front: the one moment Windows takes the change
+    if (typeof patch.leakFix === 'boolean' && patch.leakFix !== settings.leakFix) { settings.leakFix = patch.leakFix; leakFix(patch.leakFix ? 'stop' : 'restore', true); }
     saveSettings();
   }
   return shownSettings();
@@ -1911,7 +2110,7 @@ async function startBrowser() {
   });
   browser.popOpen = settings.browser.popOpen;
   browser.door = { on: settings.browser.on, listed: false, said: '', busy: false, port: 0 };
-  door = new Door({ browser, viewer, token: settings.browser.token, log, who: chatOfPid });
+  door = new Door({ browser, viewer, voice: voiceDoor, token: settings.browser.token, log, who: chatOfPid });
   // a test run takes whatever port is free: the person's own window may hold the usual one
   const ports = SELFTEST_DIR ? [0] : [...new Set([settings.browser.port, ...Array.from({ length: 10 }, (_, i) => BROWSER_PORT + i)])];
   for (const port of ports) {
@@ -2305,6 +2504,13 @@ function watchScreens() {
     if (!details || details.type !== 'GPU') return;
     log(`screen: the graphics process ended (${details.reason}, code ${details.exitCode}); Chromium starts it again`);
     redrawSoon('the graphics process started again');
+    // after three crashes close together Chromium lends the window no graphics chip until the app starts again
+    setTimeout(() => {
+      try {
+        const s = app.getGPUFeatureStatus();
+        log(`screen: after it, WebGL ${s.webgl}, the window drawn on the graphics chip: ${s.gpu_compositing}`);
+      } catch { /* the app is closing */ }
+    }, 3000);
   });
 }
 
@@ -2317,6 +2523,41 @@ function frameColors() {
     if (!glassOn) win.setBackgroundColor(ground());
     win.setTitleBarOverlay(overlay());
   } catch (err) { log(`frame colours: ${err.message}`); }
+}
+
+// ---- Windows' focus lock (focuslock.cjs) ----
+// Asked for only while this window is in front, since Windows takes the change from no other program. Once the lock
+// is at 0 it is looked at again at most every 30 minutes (only a sign-in sets it back); a refusal is tried again the
+// next time the window comes in front, at most once a minute; PowerShell giving no answer, after 30 minutes.
+const LEAK_AGAIN = 30 * 60000;
+const LEAK_RETRY = 60000;
+let leakNow = null;                         // what Windows said last: { mode, before, after, error } or { mode, failed }, and when
+let leakAsking = false;
+let leakNext = '';                          // the person flipped the switch while Windows was being asked: asked next
+const leakView = () => ({ on: settings.leakFix, now: leakNow ? { ...leakNow } : null, asking: leakAsking });
+// a test run never changes Windows' own setting: it is answered as Windows answers the window in front, and as late,
+// after the switch's own reply has reached the page
+const leakAsk = SELFTEST_DIR
+  ? (mode) => new Promise((done) => setTimeout(() => done(mode === 'restore' ? { before: 0, after: 200000, error: 0 } : { before: 2147483647, after: 0, error: 0 }), 300))
+  : focusLock;
+/** mode: 'stop' (the lock at 0) or 'restore' (the person's own setting back). now: the person asked this moment. */
+function leakFix(mode, now = false) {
+  if (process.platform !== 'win32' || (HIDDEN && !SELFTEST_DIR)) return;
+  if (leakAsking) { if (now) leakNext = mode; return; }
+  if (!now && leakNow && leakNow.mode === mode && Date.now() - leakNow.at < (leakNow.error ? LEAK_RETRY : LEAK_AGAIN)) return;
+  leakAsking = true;
+  send('desk:command', 'leak', leakView());
+  leakAsk(mode).then((r) => {
+    leakAsking = false;
+    leakNow = { mode, ...r, at: Date.now() };
+    if (r.failed) log(`focus lock: no answer from PowerShell (${r.failed})`);
+    else if (r.error) log(`focus lock: Windows kept it at ${r.after} ms (error ${r.error}); asked again when the window is next in front`);
+    else if (r.before !== r.after) log(`focus lock: ${r.before} ms -> ${r.after} ms`);
+    send('desk:command', 'leak', leakView());
+    const next = leakNext;
+    leakNext = '';
+    if (next) leakFix(next, true);
+  });
 }
 
 function createWindow() {
@@ -2368,6 +2609,7 @@ function createWindow() {
   }
   if (settings.maximized && !HIDDEN && !process.argv.includes('--tray')) win.maximize();
   for (const change of ['show', 'hide', 'minimize', 'restore', 'focus', 'blur']) win.on(change, presence);
+  win.on('focus', () => { if (settings.leakFix) leakFix('stop'); });
   // the window moved off the floating card, or onto it
   for (const change of ['move', 'resize']) win.on(change, () => { if (settings.float.on) floatSync(); });
   for (const change of ['resize', 'move', 'maximize', 'unmaximize']) {
@@ -2511,6 +2753,7 @@ async function quit(keep = true) {
   floatClose();
   notesClose();
   if (jev) jev.flush();
+  if (voice) voice.flush();
   // the servers it started go on running: only the watch over them ends
   clearTimeout(serversTimer);
   if (servers) servers.close();
@@ -2571,6 +2814,7 @@ async function restartKeeping() {
   notesClose();
   log(`restarting; ${chats.list().length} chat(s) run on in the keeper`);
   if (jev) jev.flush();
+  if (voice) voice.flush();
   clearTimeout(serversTimer);
   if (servers) servers.close();
   clearInterval(browserTimer);
@@ -2658,6 +2902,8 @@ function start() {
   loadSettings();
   jev = Jev.create({ file: path.join(app.getPath('userData'), 'jev.json'), safe: safeStorage, post: jevPost, hide: hideSecrets, mine: isMine, log });
   jev.onChange(() => send('desk:jev', jev.view()));
+  voice = Voice.create({ file: path.join(app.getPath('userData'), 'voice.json'), dir: path.join(app.getPath('userData'), 'voice'), safe: safeStorage, net: voiceNet, hide: hideSecrets, log });
+  voice.onChange(() => send('desk:voice', voiceView()));
   // what the first version kept its token counts in; the day-by-day counts live in another file
   try { fs.rmSync(path.join(app.getPath('userData'), 'counts.json'), { force: true }); } catch { /* still there, and harmless */ }
   starters = findStarters();
@@ -2681,6 +2927,7 @@ function start() {
   // the Nest: its key from any program, its line in the taskbar button's menu, and a start that asked for it
   if (process.argv.includes(NEST_FLAG)) nestAsked = true;
   nestKey();
+  voiceKey();
   if (!HIDDEN) nestTask();
   // Before the watcher thread exists: the programs it starts could otherwise take a copy of the output pipe of the
   // ones read here, and the main process would wait on that pipe for as long as they run.
@@ -2688,7 +2935,8 @@ function start() {
   // the keeper of the consoles, for the same reason: started (when there is none to reach) before the watcher thread
   keeper = new Keeper({ dir: app.getPath('userData'), test: Boolean(SELFTEST_DIR), log });
   keeper.prepare();
-  keeperReady = startKeeper(last).catch((err) => log(`keeper: ${err && err.message}; the consoles live in the app`));
+  keeperReady = startKeeper(last).catch((err) => log(`keeper: ${err && err.message}; the consoles live in the app`))
+    .then(() => { takingUp = false; tellWatcher(); });
   startWatcher();
   servers = new Servers({ dir: app.getPath('userData'), ask: (roots) => askWatcher('servers', { roots }, 12000), env: serverEnv,
     confirm: confirmStop, changed: (view) => send('desk:servers', view), log });
@@ -2759,6 +3007,14 @@ function start() {
       jev: { stub: (fn) => { jevStub = typeof fn === 'function' ? fn : null; }, view: () => jev.view(), judge: (t) => jev.judgeTurn(t),
         on: (v) => jev.setOn(v), key: (k) => jev.setKey(k), file: () => path.join(app.getPath('userData'), 'jev.json'), flush: () => jev.flush(),
         mine: (folder) => isMine(folder), sorted: (q) => findSorted(q) },
+      // the voice with a made-up ElevenLabs: stub(url, { method, headers, body }) answers in its place, and is told
+      // whether a key came, never the key. played: what the page was handed to play; idle: once all it was asked is done
+      voice: { stub: (fn) => { voiceStub = typeof fn === 'function' ? fn : null; }, view: () => voiceView(), on: (v) => { voice.setOn(v); voiceKey(); return voiceView(); },
+        key: (k) => voice.setKey(k), follow: (key, on) => voice.setFollow(key, on), file: () => path.join(app.getPath('userData'), 'voice.json'), dir: () => path.join(app.getPath('userData'), 'voice'),
+        flush: () => voice.flush(), brief: (from, args) => voice.brief(from, args), compose: (which) => voice.compose(voiceChats(), which),
+        heard: (bytes, mime, seconds) => voiceHeard(Buffer.from(bytes), mime, seconds), briefing: (which) => voiceBriefing(which), stop: () => voiceStop(),
+        inTest: (on) => { voiceInTest = Boolean(on); }, played: () => voicePlayed.slice(), clear: () => { voicePlayed = []; voiceSpoken.clear(); voiceWent = ''; },
+        idle: () => voiceQueue, went: () => voiceWent, keyState: () => voiceKeyState },
       // the servers: what the page is shown, a look asked for now, and the question asked before ending a program
       servers: { view: () => servers.view, fresh: () => servers.fresh(), asked: () => serversAsked, file: () => servers.file,
         out: (id) => servers.outFile(id), started: () => JSON.parse(JSON.stringify(servers.run)), watched: () => serversWatched },

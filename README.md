@@ -153,7 +153,7 @@ It never:
 - talks to Anthropic, logs in, logs out or switches accounts;
 - drives Claude without a terminal, or changes Claude Code itself. A chat is the `claude` program in a terminal. Lowlit types into one only when you click a button that says so (Commit, Push, Compact now, Continue all), never by itself.
 
-Nothing leaves your computer, with two exceptions that are yours to switch on. Pages opened in the Browser go to their sites, as in any browser. Jev, off by default, sends a finished chat's last answer to an outside model through OpenRouter, with your own key and a monthly cap, to judge whether the chat needs you.
+Nothing leaves your computer, with three exceptions that are yours to switch on. Pages opened in the Browser go to their sites, as in any browser. Jev, off by default, sends a finished chat's last answer to an outside model through OpenRouter, with your own key and a monthly cap, to judge whether the chat needs you. The voice, off by default, reads out the chats you pick when they finish: the words it says, and what the microphone hears after you press its key, go to ElevenLabs, with your own key and a monthly cap.
 
 Settings > What it reads says the same inside the app.
 

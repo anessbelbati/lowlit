@@ -1,5 +1,5 @@
 'use strict';
-/* global desk, h, fill, icon, glyph, bar, sync, foldGroups, popMenu, menuUnder, labelOf, phrase, folderOf, limitName, clockShort, acctName, acctShort, planName, windowOf, forecast, Parts, toast, Jev, count, dollarsShort */
+/* global desk, h, fill, icon, glyph, bar, sync, foldGroups, popMenu, menuUnder, labelOf, phrase, folderOf, limitName, clockShort, acctName, acctShort, planName, windowOf, forecast, Parts, toast, Jev, Voice, count, dollarsShort */
 // The sidebar: the chats on this machine. The chats open in this window
 // and the ones that run in other terminals stand in the same list, sorted by
 // what they want from the person: the one that has waited longest on top, then
@@ -262,7 +262,8 @@ const Side = (() => {
       out.push(hereRow(`chat:${chat.id}`, chat, c, act.label(chat), act.sub(chat)));
     }
     for (const c of state.snap.chats) {
-      if (used.has(c.key)) continue;
+      // one not placed yet most likely runs in a chat of this window that just started: it shows there once placed
+      if (used.has(c.key) || c.placing) continue;
       const chat = (c.chat && here.get(c.chat)) || null;
       const sub = phrase(c) || (state.unread.has(c.key) ? 'Finished' : 'Idle');
       // a second session in a chat of this window: listed too, and it leads to that chat
@@ -289,6 +290,7 @@ const Side = (() => {
     return [null,
       ...(home ? [{ label: `${(pins.space || []).includes(x.key) ? 'Unpin from' : 'Pin in'} ${home.name}`, icon: 'pin', run: () => act.pin(x.key, 'space') }] : []),
       { label: (pins.top || []).includes(x.key) ? 'Unpin from the top' : 'Pin on top of everything', icon: 'pin', run: () => act.pin(x.key, 'top') },
+      Voice.menuItem(x.key),
       ...(spaces.length ? [null, { heading: 'Workspaces' }, ...spaces.map((s) => ({
         label: s.id === folder ? `${s.name}, by its folder` : s.name, on: ids.includes(s.id),
         run: () => { if (s.id !== folder) act.putSession(x.key, s.id, x.cwd); },
@@ -356,6 +358,7 @@ const Side = (() => {
     meta.cost,
     x.kind === 'away' && armed && icon('bring', 12, 'out coming'),
     x.pinned && icon('pin', 11, 'row-pin'),
+    x.voiced && icon('volume', 11, 'row-voice'),
     x.kind === 'here' && h('button', { class: 'x', title: 'Close this chat (Ctrl+Shift+W)', onclick: (e) => { e.stopPropagation(); act.close(x.chat.id); } }, icon('x', 12)),
     x.thread && h('span', { class: `thread t-${x.thread}`, 'aria-hidden': 'true' }),
     h('span', { class: 'meta' }, h('span', { class: 'm-folder', text: folder, hidden: !folder }), meta.mem, meta.ram, meta.tok));
@@ -453,13 +456,15 @@ const Side = (() => {
       for (const item of byFolder(items)) {
         const home = spaces.find((s) => s.id === (act.spaceOf(item.cwd) || act.spacesOf(item.cwd, item.key)[0]));
         const x = { ...item, edge: !state.settings.space && !state.loose && home ? colorOf(home, spaces) : '',
-          pinned: Boolean(item.c && ((pins.top || []).includes(item.key) || (pins.space || []).includes(item.key))) };
+          pinned: Boolean(item.c && ((pins.top || []).includes(item.key) || (pins.space || []).includes(item.key))),
+          // picked to be read out each time it finishes (its right-click menu)
+          voiced: Boolean(item.c && Voice.follows(item.key)) };
         x.num = !unseen && x.kind !== 'ended' && !(x.chat && x.chat.closing) && num < 9 ? ++num : 0;
         seen.add(x.id);
         const armed = Boolean(x.c && state.armed.has(x.c.session));
         const calls = x.kind === 'here' ? calling.has(x.chat.id) : x.kind === 'away' && calling.has(`s:${x.key}`);
         // a row is rebuilt only when something it shows changed
-        const stamp = JSON.stringify([x.kind, x.key, x.label, x.sub, x.mark, x.group, x.on, x.shown, x.num, x.cwd, x.chat && x.chat.id, x.chat && x.chat.closing, armed, x.c && x.c.kind, x.pinned, x.edge, x.c && x.c.agents && x.c.agents.running,
+        const stamp = JSON.stringify([x.kind, x.key, x.label, x.sub, x.mark, x.group, x.on, x.shown, x.num, x.cwd, x.chat && x.chat.id, x.chat && x.chat.closing, armed, x.c && x.c.kind, x.pinned, x.voiced, x.edge, x.c && x.c.agents && x.c.agents.running,
           (x.kind === 'ended' || x.group === 'needs' || x.group === 'done') && x.since, x.thread, calls]);
         let row = rows.get(x.id);
         if (!row || row.stamp !== stamp) rows.set(x.id, row = { ...buildRow(x, armed, calls), stamp, base: baseTip(x, armed, calls) });

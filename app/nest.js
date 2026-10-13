@@ -146,7 +146,7 @@ const Nest = (() => {
     const here = new Set(state.chats.map((c) => c.id));
     // a conversation in the record that runs in another terminal, as the app's movable() counts them
     const elsewhere = state.snap.chats.filter((c) => c.provider === 'claude' && c.pid && c.session && c.kind !== 'bg'
-      && !(c.chat && here.has(c.chat)) && act.inNest(c));
+      && !(c.chat && here.has(c.chat)) && !c.placing && act.inNest(c));
     const armed = elsewhere.some((c) => state.armed.has(c.session));
     const next = JSON.stringify([stamp, folder, elsewhere.map((c) => [c.session, labelOf(c)]), armed]);
     if (next === pageStamp) return;

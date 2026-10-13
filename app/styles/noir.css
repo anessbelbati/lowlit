@@ -12,11 +12,12 @@
   src: url(../fonts/geist-mono.woff) format('woff');
 }
 
-/* the canvas the light is drawn on fills the ground; the grey look has none */
-.noir { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+/* the canvas the light is drawn on fills the ground, and so does the still picture the processor draws while there is
+   no graphics chip; the grey look has neither */
+.noir, .noir-still { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
 /* until its first frame, and while its graphics context is gone: Chromium would paint it white */
 .noir.off { display: none; }
-html[data-look="grey"] .noir { display: none; }
+html[data-look="grey"] :is(.noir, .noir-still) { display: none; }
 
 html:not([data-look="grey"]) {
   --mono: 'Geist Mono', 'Cascadia Mono', ui-monospace, Consolas, monospace;

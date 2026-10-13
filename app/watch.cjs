@@ -45,6 +45,8 @@ const SMALL_LAG = 256 * 1024;    // this far behind is "counted": the newest lin
 const HISTORY_EVERY = 10 * 60e3; // how often the machine's whole history is listed again
 const ENDED_KEPT = 40;
 const ENDED_FOR = DAY;           // an ended conversation is offered again for this long
+const PLACING_MS = 20e3;         // a session nothing placed in a chat of this window after this long runs elsewhere
+const SETTLING_MS = 60e3;        // the longest the window may take to take back the chats that ran on through a restart
 // A program on its way out takes its own record away first and then needs a few seconds more (its
 // end-of-session scripts may take up to a minute). One still there after this long is not coming back to it.
 const LEAVING_FOR = 75e3;
@@ -497,6 +499,10 @@ class Watch {
     this.gitCopies = new GitCopies();
     this.attached = new Map();   // background session id -> the desk chat that is its view
     this.placed = new Map();     // agent pid -> desk chat id, '' when it runs in some other terminal
+    this.settled = false;        // main has every chat that ran on through a restart back: its consoles are all known
+    this.settledAt = 0;
+    this.bornAt = Date.now();
+    this.metAt = new Map();      // agent pid -> when this watcher first met its session
     this.counts = new Map();     // transcript path -> its tally
     this.saved = {};             // tallies kept from the last run, until their transcript is met again
     this.journal = 0;            // characters in the cache file
@@ -1009,9 +1015,13 @@ class Watch {
   }
 
   // ---- which sessions run inside this window ----
-  /** jobs: [background session id, chat id] for the chats that are the view of one; it runs outside every console here. */
-  setShells(pairs, jobs, folders, keeper = 0) {
+  /**
+   * jobs: [background session id, chat id] for the chats that are the view of one; it runs outside every console here.
+   * settled: false while the chats that ran on through a restart are still being taken back.
+   */
+  setShells(pairs, jobs, folders, keeper = 0, settled = true) {
     this.shells = new Map(pairs);
+    if (settled && !this.settled) { this.settled = true; this.settledAt = Date.now(); }
     this.keeper = Number.isInteger(keeper) && keeper > 0 ? keeper : 0;
     this.folders = new Map((folders || []).filter((p) => Array.isArray(p) && typeof p[0] === 'string' && typeof p[1] === 'string'));
     this.attached = new Map(jobs || []);
@@ -1019,6 +1029,19 @@ class Watch {
     // a chat that closed, and the sessions seen before their own chat was known, are asked about again
     for (const [pid, chat] of this.placed) if (!chat || !open.has(chat)) this.placed.delete(pid);
     this.sent = '';
+  }
+
+  /**
+   * Whether it is still unknown in which chat of this window, if any, a session runs. While the chats that ran on
+   * through a restart are being taken back, that is every session. After, one met less than PLACING_MS ago (or
+   * before they were all back) and not placed since, until Windows has said which program runs under which
+   * console. Such a session is not yet one "in another terminal". One met earlier and asked about again (a chat
+   * opened or closed) keeps the place it had.
+   */
+  unplacedYet(pid, now) {
+    if (!this.settled) return now - this.bornAt < SETTLING_MS;
+    if (this.placed.has(pid) || !this.shells.size) return false;
+    return now - Math.max(this.metAt.get(pid) ?? now, this.settledAt) < PLACING_MS;
   }
 
   /**
@@ -1467,12 +1490,16 @@ class Watch {
     const handed = (id) => { const job = id ? jobs.get(id) : null; return Boolean(job) && (runs.has(id) || jobState(job) !== 'ended'); };
     const parked = new Map();    // background session id -> the desk chat of the terminal it came from
     for (const s of this.sessions.values()) if (handed(s.rec.parkedJobId)) parked.set(s.rec.parkedJobId, this.placed.get(s.pid) || '');
+    const met = new Set([...this.sessions.values()].map((s) => s.pid).concat(this.codex.map((c) => c.pid)));
+    for (const pid of met) if (!this.metAt.has(pid)) this.metAt.set(pid, now);
+    for (const pid of this.metAt.keys()) if (!met.has(pid)) this.metAt.delete(pid);
     const running = new Set();
     for (const s of this.sessions.values()) {
       const rec = s.rec;
       if (handed(rec.parkedJobId)) continue;
       const job = rec.jobId ? jobs.get(rec.jobId) : null;
       if (job) running.add(job.id);
+      const chat = this.placed.get(s.pid) || (job && (this.attached.get(job.id) || parked.get(job.id))) || '';
       const f = s.follow;
       const st = f ? f.state : null;
       let state = this.stateOf(s);
@@ -1550,7 +1577,9 @@ class Watch {
         effort: st ? st.effort : '',
         mode: st ? st.mode : '',
         job: job ? job.id : '',
-        chat: this.placed.get(s.pid) || (job && (this.attached.get(job.id) || parked.get(job.id))) || '',
+        chat,
+        // a background session runs outside every console: there is nothing to wait for
+        placing: !chat && rec.kind !== 'bg' && this.unplacedYet(s.pid, now),
       });
     }
     for (const job of this.jobs) {
@@ -1654,6 +1683,7 @@ class Watch {
         mode: '',
         job: '',
         chat: this.placed.get(c.pid) || '',
+        placing: !this.placed.get(c.pid) && this.unplacedYet(c.pid, now),
       });
     }
     const ended = this.ended.filter((e) => now - e.at < ENDED_FOR);
@@ -2033,7 +2063,7 @@ if (!isMainThread) {
   };
   parentPort.on('message', (m) => {
     try {
-      if (m.type === 'shells') watch.setShells(m.pairs, m.jobs, m.folders, m.keeper);
+      if (m.type === 'shells') watch.setShells(m.pairs, m.jobs, m.folders, m.keeper, m.settled);
       // a new pace starts with a look: a window that comes back into view is brought up to date at once
       else if (m.type === 'pace') { pace = m.ms; watch.measureEvery = m.ms <= 2000 ? MEASURE_SEEN : MEASURE_AWAY; sampleEvery(m.ms <= 2000 ? 500 : 2000); look(); }
       else if (m.type === 'counting') watch.counting = Boolean(m.on);

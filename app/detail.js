@@ -92,7 +92,7 @@ const Detail = (() => {
         // beside its own terminal there is nothing to open
         if (f.here) return act.open ? h('button', { class: 'btn primary', onclick: () => act.open(c.chat) }, icon('terminal', 14), h('span', { text: 'Open' })) : null;
         if (c.kind === 'bg' && c.job) return h('button', { class: 'btn', tip: 'Open this background session in a chat of this window', onclick: () => act.attach(c) }, icon('terminal', 14), h('span', { text: 'Open here' }));
-        if (c.provider === 'claude' && c.pid && c.session) {
+        if (c.provider === 'claude' && c.pid && c.session && !c.placing) {
           if (f.armed) return h('button', { class: 'btn armed', tip: 'It opens here as soon as you close it in its own window (type /exit there).\nClick to cancel.', onclick: () => act.disarm(c.session) }, h('span', { text: 'Waiting…' }));
           return h('button', { class: 'btn', tip: 'Move this chat into this window.\nYou close it where it runs now; it then opens here by itself, with its whole conversation.', onclick: () => act.arm([c.session]) }, icon('bring', 14), h('span', { text: 'Bring here' }));
         }

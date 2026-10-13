@@ -416,7 +416,7 @@ const Glance = (() => {
   function render(st) {
     state = st;
     if (state.view !== 'overview') return;
-    const subjects = state.snap.chats.filter(live).map((c) => subject(c, state.chats.find((x) => x.id === c.chat)));
+    const subjects = state.snap.chats.filter((c) => live(c) && !c.placing).map((c) => subject(c, state.chats.find((x) => x.id === c.chat)));
     for (const chat of state.chats) if (!subjects.some((s) => s.chat && s.chat.id === chat.id)) subjects.push(subject(null, chat));
     const spaces = state.settings.spaces || [];
     const order = spaces.length ? [...spaces.map((s) => [s.id, s.name]), ['', 'Unsorted']] : [['', 'All chats']];
